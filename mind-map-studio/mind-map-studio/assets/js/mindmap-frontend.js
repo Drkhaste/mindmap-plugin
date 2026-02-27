@@ -80,11 +80,16 @@
         var nodes = el.querySelectorAll('jmnode');
         if (!nodes.length) return;
 
+        /* Reset transform before measuring */
+        wrap.style.transform = 'none';
+        var svg = el.querySelector('svg');
+        if (svg) svg.style.transform = 'none';
+
         var minX = 99999, maxX = -99999, minY = 99999, maxY = -99999;
         for (var j = 0; j < nodes.length; j++) {
             var node = nodes[j];
-            var x = parseInt(node.style.left);
-            var y = parseInt(node.style.top);
+            var x = node.offsetLeft;
+            var y = node.offsetTop;
             var w = node.offsetWidth;
             var h = node.offsetHeight;
             if (x < minX) minX = x;
@@ -95,25 +100,22 @@
 
         var mW = maxX - minX;
         var mH = maxY - minY;
-        var cW = el.offsetWidth;
+        var cW = el.getBoundingClientRect().width;
 
         var scale = 1;
-        if (mW > cW && cW > 0) {
-            scale = cW / (mW + 40); // 40px padding
+        if (mW > (cW - 20) && cW > 0) {
+            scale = (cW - 20) / mW;
         }
-
-        // Ensure scale is at most 1 as per user's preference that it's already fit
         if (scale > 1) scale = 1;
 
         var offsetX = -minX * scale + (cW - mW * scale) / 2;
-        var offsetY = -minY * scale;
+        var offsetY = -minY * scale + 10;
 
-        var transformVal = 'translate(' + offsetX + 'px, ' + offsetY + 'px) scale(' + scale + ')';
+        var transformVal = 'translate(' + Math.round(offsetX) + 'px, ' + Math.round(offsetY) + 'px) scale(' + scale + ')';
 
         wrap.style.transformOrigin = '0 0';
         wrap.style.transform       = transformVal;
 
-        var svg = el.querySelector('svg');
         if (svg) {
             svg.style.transformOrigin = '0 0';
             svg.style.transform       = transformVal;
@@ -122,6 +124,7 @@
 
         el.style.height   = Math.ceil(mH * scale + 20) + 'px';
         el.style.overflow = 'hidden';
+        el.style.direction = 'ltr';
 
         var cap = findCapture(el);
         if (cap) {

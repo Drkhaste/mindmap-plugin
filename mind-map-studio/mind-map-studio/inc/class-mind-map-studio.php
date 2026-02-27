@@ -317,6 +317,7 @@ class Mind_Map_Studio {
 		</div>
 		<style>
 			#<?php echo esc_attr( $unique_id ); ?> jmnode { font-family: inherit !important; }
+			#<?php echo esc_attr( $unique_id ); ?> { direction: ltr !important; overflow: hidden !important; }
 			#<?php echo esc_attr( $unique_id ); ?> jmexpander { display: none !important; }
 			.mindmap-studio-capture { background-repeat: repeat !important; }
 		</style>
