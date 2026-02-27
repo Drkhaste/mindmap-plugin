@@ -199,7 +199,7 @@ class Mind_Map_Studio {
 			</div>
 		</div>
 		<style>
-			#jsmind_container jmnode { font-family: Vazirmatn, Tahoma, Arial, sans-serif !important; }
+			#jsmind_container jmnode { font-family: inherit !important; }
 			jmexpander { display: none !important; }
 		</style>
 		<?php
@@ -316,7 +316,8 @@ class Mind_Map_Studio {
 			</div>
 		</div>
 		<style>
-			#<?php echo esc_attr( $unique_id ); ?> jmnode { font-family: Vazirmatn, Tahoma, Arial, sans-serif !important; }
+			#<?php echo esc_attr( $unique_id ); ?> jmnode { font-family: inherit !important; }
+			#<?php echo esc_attr( $unique_id ); ?> { direction: ltr !important; overflow: hidden !important; }
 			#<?php echo esc_attr( $unique_id ); ?> jmexpander { display: none !important; }
 			.mindmap-studio-capture { background-repeat: repeat !important; }
 		</style>
