@@ -14,7 +14,6 @@ class Mind_Map_Studio {
 		add_action( 'init',                                          array( __CLASS__, 'register_post_type' ) );
 		add_action( 'admin_menu',                                    array( __CLASS__, 'add_admin_menu' ) );
 		add_action( 'admin_init',                                    array( __CLASS__, 'register_settings' ) );
-		add_action( 'admin_init',                                    array( __CLASS__, 'handle_local_assets_upload' ) );
 		add_action( 'add_meta_boxes',                                array( __CLASS__, 'add_meta_boxes' ) );
 		add_action( 'save_post_' . self::CPT_SLUG,                   array( __CLASS__, 'save_mindmap_data' ) );
 		add_action( 'admin_enqueue_scripts',                         array( __CLASS__, 'admin_assets' ) );
@@ -71,103 +70,6 @@ class Mind_Map_Studio {
 		);
 	}
 
-	public static function handle_local_assets_upload() {
-		if ( ! isset( $_FILES['mind_map_local_zip'] ) || empty( $_FILES['mind_map_local_zip']['name'] ) ) {
-			return;
-		}
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
-		// Check if it is a POST request from the settings page
-		if ( ! isset( $_POST['option_page'] ) || $_POST['option_page'] !== 'mind_map_settings_group' ) {
-			return;
-		}
-
-		// Nonce verification (WordPress handles the 'option_page' check but extra safety is better)
-		if ( ! isset( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( $_REQUEST['_wpnonce'], 'mind_map_settings_group-options' ) ) {
-			return;
-		}
-
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-
-		$uploaded_file = $_FILES['mind_map_local_zip'];
-		// Validate that it is a ZIP file
-		$file_type = wp_check_filetype( $uploaded_file['name'] );
-		if ( $file_type['ext'] !== 'zip' ) {
-			add_settings_error( 'mind_map_settings_group', 'local_zip_invalid_type', __( 'فقط فایل ZIP مجاز است.', 'mind-map-studio' ) );
-			return;
-		}
-
-		$upload_overrides = array( 'test_form' => false );
-		$movefile = wp_handle_upload( $uploaded_file, $upload_overrides );
-
-		if ( $movefile && ! isset( $movefile['error'] ) ) {
-			$wp_upload_dir = wp_upload_dir();
-			$extract_path = $wp_upload_dir['basedir'] . '/mind-map-studio/local/';
-
-			if ( ! file_exists( $extract_path ) ) {
-				wp_mkdir_p( $extract_path );
-			}
-
-			// Secure extraction: unzip to temp first and validate contents
-			$temp_extract = $extract_path . 'temp_' . time() . '/';
-			wp_mkdir_p( $temp_extract );
-
-			WP_Filesystem();
-			$unzipfile = unzip_file( $movefile['file'], $temp_extract );
-
-			if ( is_wp_error( $unzipfile ) ) {
-				add_settings_error( 'mind_map_settings_group', 'local_zip_extract_error', __( 'خطا در استخراج فایل زیپ: ', 'mind-map-studio' ) . $unzipfile->get_error_message() );
-			} else {
-				// Validate files in the ZIP
-				$files = list_files( $temp_extract );
-				$allowed_extensions = array( 'js', 'css' );
-				$success = true;
-
-				foreach ( $files as $file ) {
-					$ext = pathinfo( $file, PATHINFO_EXTENSION );
-					if ( ! in_array( strtolower( $ext ), $allowed_extensions ) ) {
-						add_settings_error( 'mind_map_settings_group', 'local_zip_malicious', __( 'فایل غیرمجاز در زیپ یافت شد: ', 'mind-map-studio' ) . basename( $file ) );
-						$success = false;
-						break;
-					}
-				}
-
-				if ( $success ) {
-					foreach ( $files as $file ) {
-						copy( $file, $extract_path . basename( $file ) );
-					}
-					add_settings_error( 'mind_map_settings_group', 'local_zip_success', __( 'فایل‌های لوکال با موفقیت مستقر شدند.', 'mind-map-studio' ), 'updated' );
-				}
-
-				// Cleanup temp directory
-				self::recursive_rmdir( $temp_extract );
-			}
-
-			// Delete the uploaded zip file after extraction
-			unlink( $movefile['file'] );
-		} else {
-			add_settings_error( 'mind_map_settings_group', 'local_zip_upload_error', __( 'خطا در آپلود فایل زیپ: ', 'mind-map-studio' ) . $movefile['error'] );
-		}
-	}
-
-	private static function recursive_rmdir( $dir ) {
-		if ( is_dir( $dir ) ) {
-			$objects = scandir( $dir );
-			foreach ( $objects as $object ) {
-				if ( $object != "." && $object != ".." ) {
-					if ( is_dir( $dir . DIRECTORY_SEPARATOR . $object ) && ! is_link( $dir . "/" . $object ) )
-						self::recursive_rmdir( $dir . DIRECTORY_SEPARATOR . $object );
-					else
-						unlink( $dir . DIRECTORY_SEPARATOR . $object );
-				}
-			}
-			rmdir( $dir );
-		}
-	}
-
 	public static function register_settings() {
 		register_setting( 'mind_map_settings_group', 'mind_map_watermark_text',    array( 'default' => '' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_watermark_size',    array( 'default' => 14 ) );
@@ -176,14 +78,13 @@ class Mind_Map_Studio {
 		register_setting( 'mind_map_settings_group', 'mind_map_theme_light',       array( 'default' => 'primary' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_theme_dark',        array( 'default' => 'dark' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_line_color',         array( 'default' => '#cbd5e1' ) );
-		register_setting( 'mind_map_settings_group', 'mind_map_local_mode',         array( 'default' => '0' ) );
 	}
 
 	public static function render_settings_page() {
 		?>
 		<div class="wrap">
 			<h1><?php _e( 'تنظیمات نقشه‌ساز ذهنی', 'mind-map-studio' ); ?></h1>
-			<form method="post" action="options.php" enctype="multipart/form-data">
+			<form method="post" action="options.php">
 				<?php settings_fields( 'mind_map_settings_group' ); ?>
 				<table class="form-table">
 					<tr>
@@ -223,22 +124,6 @@ class Mind_Map_Studio {
 						<td>
 							<input type="color" name="mind_map_line_color" value="<?php echo esc_attr( get_option( 'mind_map_line_color', '#cbd5e1' ) ); ?>" />
 							<p class="description"><?php _e( 'رنگ خطوط اتصال بین نودها در نمودار', 'mind-map-studio' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><?php _e( 'حالت لوکال (Local Mode)', 'mind-map-studio' ); ?></th>
-						<td>
-							<label for="mind_map_local_mode">
-								<input name="mind_map_local_mode" type="checkbox" id="mind_map_local_mode" value="1" <?php checked( '1', get_option( 'mind_map_local_mode', '0' ) ); ?> />
-								<?php _e( 'استفاده از فایل‌های لوکال به جای CDN', 'mind-map-studio' ); ?>
-							</label>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><?php _e( 'آپلود فایل‌های لوکال (ZIP)', 'mind-map-studio' ); ?></th>
-						<td>
-							<input type="file" name="mind_map_local_zip" accept=".zip" />
-							<p class="description"><?php _e( 'فایل mind-map-studio-local-assets.zip را اینجا آپلود کنید.', 'mind-map-studio' ); ?></p>
 						</td>
 					</tr>
 				</table>
@@ -338,26 +223,6 @@ class Mind_Map_Studio {
 		}
 	}
 
-	/**
-	 * Helper to get local asset URL if enabled and exists.
-	 */
-	public static function get_asset_url( $filename, $cdn_url ) {
-		$is_local = get_option( 'mind_map_local_mode', '0' ) === '1';
-		if ( ! $is_local ) {
-			return $cdn_url;
-		}
-
-		$wp_upload_dir = wp_upload_dir();
-		$local_path    = $wp_upload_dir['basedir'] . '/mind-map-studio/local/' . $filename;
-		$local_url     = $wp_upload_dir['baseurl'] . '/mind-map-studio/local/' . $filename;
-
-		if ( file_exists( $local_path ) ) {
-			return $local_url;
-		}
-
-		return $cdn_url;
-	}
-
 	/* ──────────────────────────────────────────────
 	   ASSETS - ADMIN
 	─────────────────────────────────────────────── */
@@ -366,11 +231,8 @@ class Mind_Map_Studio {
 		if ( ! $screen ) return;
 		if ( $screen->post_type !== self::CPT_SLUG ) return;
 
-		$jsmind_css = self::get_asset_url( 'jsmind.css', 'https://cdn.jsdelivr.net/npm/jsmind@0.5.4/style/jsmind.css' );
-		$jsmind_js  = self::get_asset_url( 'jsmind.js',  'https://cdn.jsdelivr.net/npm/jsmind@0.5.4/js/jsmind.js' );
-
-		wp_enqueue_style(  'jsmind',                $jsmind_css, array(), '0.5.4' );
-		wp_enqueue_script( 'jsmind',                $jsmind_js,    array(), '0.5.4', true );
+		wp_enqueue_style(  'jsmind',                MIND_MAP_STUDIO_URL . 'assets/css/jsmind.css', array(), '0.5.2' );
+		wp_enqueue_script( 'jsmind',                MIND_MAP_STUDIO_URL . 'assets/vendor/jsmind.js',    array(), '0.5.2', true );
 		wp_enqueue_script( 'mindmap-studio-admin',  MIND_MAP_STUDIO_URL . 'assets/js/mindmap-admin.js',           array( 'jquery', 'jsmind' ), MIND_MAP_STUDIO_VERSION, true );
 
 		wp_localize_script( 'mindmap-studio-admin', 'mindMapStudioSettings', array(
@@ -394,11 +256,8 @@ class Mind_Map_Studio {
 	public static function frontend_assets() {
 		// این تابع فقط اسکریپت‌ها رو register می‌کنه، enqueue نمی‌کنه
 		// enqueue واقعی داخل render_shortcode انجام می‌شه
-		$jsmind_css = self::get_asset_url( 'jsmind.css', 'https://cdn.jsdelivr.net/npm/jsmind@0.5.4/style/jsmind.css' );
-		$jsmind_js  = self::get_asset_url( 'jsmind.js',  'https://cdn.jsdelivr.net/npm/jsmind@0.5.4/js/jsmind.js' );
-
-		wp_register_style(  'jsmind',                 $jsmind_css, array(), '0.5.4' );
-		wp_register_script( 'jsmind',                 $jsmind_js,    array(), '0.5.4', true );
+		wp_register_style(  'jsmind',                 MIND_MAP_STUDIO_URL . 'assets/css/jsmind.css', array(), '0.5.2' );
+		wp_register_script( 'jsmind',                 MIND_MAP_STUDIO_URL . 'assets/vendor/jsmind.js',    array(), '0.5.2', true );
 		wp_register_script( 'mindmap-studio-frontend', MIND_MAP_STUDIO_URL . 'assets/js/mindmap-frontend.js',        array( 'jsmind' ), MIND_MAP_STUDIO_VERSION, true );
 	}
 
