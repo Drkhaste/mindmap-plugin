@@ -199,7 +199,7 @@ class Mind_Map_Studio {
 			</div>
 		</div>
 		<style>
-			#jsmind_container jmnode { font-family: Vazirmatn, Tahoma, Arial, sans-serif !important; }
+			#jsmind_container jmnode { font-family: inherit !important; }
 			jmexpander { display: none !important; }
 		</style>
 		<?php
@@ -231,8 +231,8 @@ class Mind_Map_Studio {
 		if ( ! $screen ) return;
 		if ( $screen->post_type !== self::CPT_SLUG ) return;
 
-		wp_enqueue_style(  'jsmind',                'https://cdn.jsdelivr.net/npm/jsmind@0.5.4/style/jsmind.css', array(), '0.5.4' );
-		wp_enqueue_script( 'jsmind',                'https://cdn.jsdelivr.net/npm/jsmind@0.5.4/js/jsmind.js',    array(), '0.5.4', true );
+		wp_enqueue_style(  'jsmind',                MIND_MAP_STUDIO_URL . 'assets/css/jsmind.css', array(), '0.5.2' );
+		wp_enqueue_script( 'jsmind',                MIND_MAP_STUDIO_URL . 'assets/vendor/jsmind.js',    array(), '0.5.2', true );
 		wp_enqueue_script( 'mindmap-studio-admin',  MIND_MAP_STUDIO_URL . 'assets/js/mindmap-admin.js',           array( 'jquery', 'jsmind' ), MIND_MAP_STUDIO_VERSION, true );
 
 		wp_localize_script( 'mindmap-studio-admin', 'mindMapStudioSettings', array(
@@ -256,8 +256,8 @@ class Mind_Map_Studio {
 	public static function frontend_assets() {
 		// این تابع فقط اسکریپت‌ها رو register می‌کنه، enqueue نمی‌کنه
 		// enqueue واقعی داخل render_shortcode انجام می‌شه
-		wp_register_style(  'jsmind',                 'https://cdn.jsdelivr.net/npm/jsmind@0.5.4/style/jsmind.css', array(), '0.5.4' );
-		wp_register_script( 'jsmind',                 'https://cdn.jsdelivr.net/npm/jsmind@0.5.4/js/jsmind.js',    array(), '0.5.4', true );
+		wp_register_style(  'jsmind',                 MIND_MAP_STUDIO_URL . 'assets/css/jsmind.css', array(), '0.5.2' );
+		wp_register_script( 'jsmind',                 MIND_MAP_STUDIO_URL . 'assets/vendor/jsmind.js',    array(), '0.5.2', true );
 		wp_register_script( 'mindmap-studio-frontend', MIND_MAP_STUDIO_URL . 'assets/js/mindmap-frontend.js',        array( 'jsmind' ), MIND_MAP_STUDIO_VERSION, true );
 	}
 
@@ -316,7 +316,8 @@ class Mind_Map_Studio {
 			</div>
 		</div>
 		<style>
-			#<?php echo esc_attr( $unique_id ); ?> jmnode { font-family: Vazirmatn, Tahoma, Arial, sans-serif !important; }
+			#<?php echo esc_attr( $unique_id ); ?> jmnode { font-family: inherit !important; }
+			#<?php echo esc_attr( $unique_id ); ?> { direction: ltr !important; overflow: hidden !important; }
 			#<?php echo esc_attr( $unique_id ); ?> jmexpander { display: none !important; }
 			.mindmap-studio-capture { background-repeat: repeat !important; }
 		</style>

@@ -77,31 +77,41 @@
         var wrap = el.querySelector('jmnodes');
         if (!wrap) return;
 
-        /* ریست transform قبل از اندازه‌گیری */
+        var nodes = el.querySelectorAll('jmnode');
+        if (!nodes.length) return;
+
+        /* Reset transform before measuring */
         wrap.style.transform = 'none';
         var svg = el.querySelector('svg');
         if (svg) svg.style.transform = 'none';
 
-        var mW = wrap.scrollWidth;
-        var mH = wrap.scrollHeight;
-        if (!mW || mW < 20) return;
+        var minX = 99999, maxX = -99999, minY = 99999, maxY = -99999;
+        for (var j = 0; j < nodes.length; j++) {
+            var node = nodes[j];
+            var x = node.offsetLeft;
+            var y = node.offsetTop;
+            var w = node.offsetWidth;
+            var h = node.offsetHeight;
+            if (x < minX) minX = x;
+            if (x + w > maxX) maxX = x + w;
+            if (y < minY) minY = y;
+            if (y + h > maxY) maxY = y + h;
+        }
 
-        var cW = el.parentElement ? el.parentElement.offsetWidth : el.offsetWidth;
-        if (!cW || cW < 20) cW = 360;
+        var mW = maxX - minX;
+        var mH = maxY - minY;
+        var cW = el.getBoundingClientRect().width;
 
-        var scale = Math.min(1, cW / mW);
+        var scale = 1;
+        if (mW > (cW - 20) && cW > 0) {
+            scale = (cW - 20) / mW;
+        }
+        if (scale > 1) scale = 1;
 
-        /* محاسبه offset برای center کردن */
-        var scaledW  = mW * scale;
-        var offsetX  = (cW - scaledW) / 2;
-        /* اگه scale=1 باشه و نمودار کوچیکه، وسط قرار بگیره */
-        /* اگه scale<1 باشه، از گوشه بالا-چپ شروع کن (offsetX=0) */
-        if (scale < 1) offsetX = 0;
+        var offsetX = -minX * scale + (cW - mW * scale) / 2;
+        var offsetY = -minY * scale + 10;
 
-        /* transform با translateX برای center */
-        var transformVal = scale < 1
-            ? 'scale(' + scale + ')'
-            : 'translateX(' + Math.round(offsetX) + 'px)';
+        var transformVal = 'translate(' + Math.round(offsetX) + 'px, ' + Math.round(offsetY) + 'px) scale(' + scale + ')';
 
         wrap.style.transformOrigin = '0 0';
         wrap.style.transform       = transformVal;
@@ -112,8 +122,9 @@
             svg.style.overflow        = 'visible';
         }
 
-        el.style.height   = Math.ceil(mH * scale) + 'px';
+        el.style.height   = Math.ceil(mH * scale + 20) + 'px';
         el.style.overflow = 'hidden';
+        el.style.direction = 'ltr';
 
         var cap = findCapture(el);
         if (cap) {
