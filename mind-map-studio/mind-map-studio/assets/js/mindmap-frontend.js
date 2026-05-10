@@ -10,6 +10,9 @@
             else { console.error('[MindMapStudio] jsMind not found.'); }
             return;
         }
+
+        applyLineStyleOverrides();
+
         var els = document.querySelectorAll('.mindmap-studio-container');
         for (var i = 0; i < els.length; i++) {
             initMap(els[i]);
@@ -108,13 +111,17 @@
 
         var mW = maxX - minX;
         var mH = maxY - minY;
-        var cW = el.getBoundingClientRect().width;
+        var cRect = el.getBoundingClientRect();
+        var cW = cRect.width;
 
-        var scale = 1;
+        var baseScale = 1;
         if (mW > (cW - 20) && cW > 0) {
-            scale = (cW - 20) / mW;
+            baseScale = (cW - 20) / mW;
         }
-        if (scale > 1) scale = 1;
+        if (baseScale > 1) baseScale = 1;
+
+        var userZoom = parseFloat(el.getAttribute('data-user-zoom') || '1');
+        var scale = baseScale * userZoom;
 
         var offsetX = -minX * scale + (cW - mW * scale) / 2;
         var offsetY = -minY * scale + 10;
@@ -208,6 +215,7 @@
 
     function enablePinchToZoom(el, jm) {
         var startDist = 0;
+        var initialZoom = 1;
         var isPinching = false;
 
         el.addEventListener('touchstart', function(e) {
@@ -217,6 +225,7 @@
                     e.touches[0].pageX - e.touches[1].pageX,
                     e.touches[0].pageY - e.touches[1].pageY
                 );
+                initialZoom = parseFloat(el.getAttribute('data-user-zoom') || '1');
             }
         }, { passive: false });
 
@@ -228,15 +237,11 @@
                     e.touches[0].pageY - e.touches[1].pageY
                 );
 
-                var diff = currentDist - startDist;
-                if (Math.abs(diff) > 20) {
-                    if (diff > 0) {
-                        jm.view.zoomIn();
-                    } else {
-                        jm.view.zoomOut();
-                    }
-                    startDist = currentDist;
-                }
+                var zoomFactor = currentDist / startDist;
+                var newZoom = Math.min(Math.max(initialZoom * zoomFactor, 0.5), 3);
+
+                el.setAttribute('data-user-zoom', newZoom.toString());
+                scaleAndCenter(el);
             }
         }, { passive: false });
 
@@ -295,16 +300,10 @@
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
-            setTimeout(function() {
-                applyLineStyleOverrides();
-                boot();
-            }, 150);
+            setTimeout(boot, 150);
         });
     } else {
-        setTimeout(function() {
-            applyLineStyleOverrides();
-            boot();
-        }, 150);
+        setTimeout(boot, 150);
     }
 
 }());
