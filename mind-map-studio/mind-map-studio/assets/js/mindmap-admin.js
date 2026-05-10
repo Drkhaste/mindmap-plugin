@@ -159,6 +159,10 @@
         try {
             jm = new jsMind(opts);
             jm.show(mind);
+
+            // Re-apply overrides in case jsMind was re-instantiated
+            applyLineStyleOverrides();
+
             jm.add_event_listener(function(type, data) {
                 if (type === 3 && !isUpdating) {
                     updateTextareaFromMap();
@@ -175,7 +179,7 @@
         var mind_data = jm.get_data('node_array');
         var text = serializeToText(mind_data.data);
         isUpdating = true;
-        $('#mind_map_data').val(text).trigger('change');
+        $('#mind_map_data').val(text).trigger('input'); // Use input event
         isUpdating = false;
     }
 
@@ -212,7 +216,11 @@
             return;
         }
         var nodeid = 'n' + Date.now();
-        jm.add_node(selected_node, nodeid, 'نود جدید');
+        var node = jm.add_node(selected_node, nodeid, 'نود جدید');
+        if (node) {
+            jm.select_node(nodeid);
+            jm.begin_edit(nodeid);
+        }
     }
 
     function addSibling() {
@@ -223,7 +231,11 @@
             return;
         }
         var nodeid = 'n' + Date.now();
-        jm.insert_node_after(selected_node, nodeid, 'نود جدید');
+        var node = jm.insert_node_after(selected_node, nodeid, 'نود جدید');
+        if (node) {
+            jm.select_node(nodeid);
+            jm.begin_edit(nodeid);
+        }
     }
 
     function deleteNode() {
@@ -235,6 +247,7 @@
         }
         if (confirm('آیا از حذف این نود و تمام فرزندان آن مطمئن هستید؟')) {
             jm.remove_node(selected_node);
+            updateTextareaFromMap(); // Ensure sync after deletion
         }
     }
 
@@ -274,22 +287,47 @@
     }
 
     /* ── Line Style Overrides ── */
-    if (typeof jsMind !== 'undefined' && jsMind.graph_svg) {
-        var origBezierTo = jsMind.graph_svg.prototype._bezier_to;
+    function applyLineStyleOverrides() {
+        if (typeof jsMind === 'undefined') return;
 
-        jsMind.graph_svg.prototype._bezier_to = function (path, x1, y1, x2, y2) {
-            var style = (this.opts.line_style || 'bezier');
+        // SVG Engine
+        if (jsMind.graph_svg && !jsMind.graph_svg.prototype._bezier_to_orig) {
+            jsMind.graph_svg.prototype._bezier_to_orig = jsMind.graph_svg.prototype._bezier_to;
+            jsMind.graph_svg.prototype._bezier_to = function (path, x1, y1, x2, y2) {
+                var style = (this.opts.line_style || 'bezier');
+                if (style === 'straight') {
+                    path.setAttribute('d', 'M' + x1 + ' ' + y1 + ' L' + x2 + ' ' + y2);
+                } else if (style === 'rounded') {
+                    var midX = x1 + (x2 - x1) * 0.5;
+                    path.setAttribute('d', 'M' + x1 + ' ' + y1 + ' L' + midX + ' ' + y1 + ' L' + midX + ' ' + y2 + ' L' + x2 + ' ' + y2);
+                } else {
+                    this._bezier_to_orig(path, x1, y1, x2, y2);
+                }
+            };
+        }
 
-            if (style === 'straight') {
-                path.setAttribute('d', 'M' + x1 + ' ' + y1 + ' L' + x2 + ' ' + y2);
-            } else if (style === 'rounded') {
-                var midX = x1 + (x2 - x1) * 0.5;
-                path.setAttribute('d', 'M' + x1 + ' ' + y1 + ' L' + midX + ' ' + y1 + ' L' + midX + ' ' + y2 + ' L' + x2 + ' ' + y2);
-            } else {
-                origBezierTo.call(this, path, x1, y1, x2, y2);
-            }
-        };
+        // Canvas Engine
+        if (jsMind.graph_canvas && !jsMind.graph_canvas.prototype._bezier_to_orig) {
+            jsMind.graph_canvas.prototype._bezier_to_orig = jsMind.graph_canvas.prototype._bezier_to;
+            jsMind.graph_canvas.prototype._bezier_to = function (ctx, x1, y1, x2, y2) {
+                var style = (this.opts.line_style || 'bezier');
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                if (style === 'straight') {
+                    ctx.lineTo(x2, y2);
+                } else if (style === 'rounded') {
+                    var midX = x1 + (x2 - x1) * 0.5;
+                    ctx.lineTo(midX, y1);
+                    ctx.lineTo(midX, y2);
+                    ctx.lineTo(x2, y2);
+                } else {
+                    ctx.bezierCurveTo(x1 + (x2 - x1) * 2 / 3, y1, x1, y2, x2, y2);
+                }
+                ctx.stroke();
+            };
+        }
     }
+    applyLineStyleOverrides();
 
     $(document).ready(init);
 

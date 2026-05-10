@@ -79,18 +79,18 @@ jmnode {
     background-color: #fff;
     color: #333;
     border-radius: 5px;
-    box-shadow: 1px 1px 1px #666;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     font: 16px/1.125 Verdana, Arial, Helvetica, sans-serif;
 }
 jmnode:hover {
-    box-shadow: 2px 2px 8px #000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     background-color: #ebebeb;
     color: #333;
 }
 jmnode.selected {
     background-color: #11f;
     color: #fff;
-    box-shadow: 2px 2px 8px #000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 jmnode.root {
     font-size: 24px;
@@ -441,4 +441,19 @@ jmnodes.theme-modern jmexpander {
     border-color: #e2e8f0;
     color: #64748b;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* custom theme */
+jmnodes.theme-custom jmnode {
+    background-color: var(--mms-node-bg, #fff);
+    color: var(--mms-node-text, #333);
+    border: 1px solid rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+jmnodes.theme-custom jmnode.selected {
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.2);
+}
+jmnodes.theme-custom jmnode.root {
+    background-color: var(--mms-root-bg, #333);
+    color: var(--mms-root-text, #fff);
 }

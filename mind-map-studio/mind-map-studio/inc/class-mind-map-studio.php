@@ -81,6 +81,10 @@ class Mind_Map_Studio {
 		register_setting( 'mind_map_settings_group', 'mind_map_line_style',         array( 'default' => 'bezier' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_line_width',         array( 'default' => 2 ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_node_border_radius', array( 'default' => 5 ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_custom_node_bg',     array( 'default' => '#ffffff' ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_custom_node_text',   array( 'default' => '#333333' ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_custom_root_bg',     array( 'default' => '#334155' ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_custom_root_text',   array( 'default' => '#ffffff' ) );
 	}
 
 	public static function render_settings_page() {
@@ -134,8 +138,8 @@ class Mind_Map_Studio {
 						<td>
 							<select name="mind_map_line_style">
 								<option value="bezier" <?php selected( get_option( 'mind_map_line_style', 'bezier' ), 'bezier' ); ?>><?php _e( 'منحنی (Bezier)', 'mind-map-studio' ); ?></option>
-								<option value="straight" <?php selected( get_option( 'mind_map_line_style', 'bezier' ), 'straight' ); ?>><?php _e( 'مستقیم (Straight)', 'mind-map-studio' ); ?></option>
-								<option value="rounded" <?php selected( get_option( 'mind_map_line_style', 'bezier' ), 'rounded' ); ?>><?php _e( 'گوشه گرد (Rounded)', 'mind-map-studio' ); ?></option>
+								<option value="straight" <?php selected( get_option( 'mind_map_line_style', 'straight' ), 'straight' ); ?>><?php _e( 'مستقیم (Straight)', 'mind-map-studio' ); ?></option>
+								<option value="rounded" <?php selected( get_option( 'mind_map_line_style', 'rounded' ), 'rounded' ); ?>><?php _e( 'گوشه گرد (Rounded)', 'mind-map-studio' ); ?></option>
 							</select>
 						</td>
 					</tr>
@@ -147,7 +151,37 @@ class Mind_Map_Studio {
 						<th><?php _e( 'گردی لبه نودها (px)', 'mind-map-studio' ); ?></th>
 						<td><input type="number" name="mind_map_node_border_radius" value="<?php echo esc_attr( get_option( 'mind_map_node_border_radius', 5 ) ); ?>" min="0" max="50" /></td>
 					</tr>
+					<tr class="custom-theme-only">
+						<th><?php _e( 'رنگ پس‌زمینه نودها (تم کاستوم)', 'mind-map-studio' ); ?></th>
+						<td><input type="color" name="mind_map_custom_node_bg" value="<?php echo esc_attr( get_option( 'mind_map_custom_node_bg', '#ffffff' ) ); ?>" /></td>
+					</tr>
+					<tr class="custom-theme-only">
+						<th><?php _e( 'رنگ متن نودها (تم کاستوم)', 'mind-map-studio' ); ?></th>
+						<td><input type="color" name="mind_map_custom_node_text" value="<?php echo esc_attr( get_option( 'mind_map_custom_node_text', '#333333' ) ); ?>" /></td>
+					</tr>
+					<tr class="custom-theme-only">
+						<th><?php _e( 'رنگ پس‌زمینه ریشه (تم کاستوم)', 'mind-map-studio' ); ?></th>
+						<td><input type="color" name="mind_map_custom_root_bg" value="<?php echo esc_attr( get_option( 'mind_map_custom_root_bg', '#334155' ) ); ?>" /></td>
+					</tr>
+					<tr class="custom-theme-only">
+						<th><?php _e( 'رنگ متن ریشه (تم کاستوم)', 'mind-map-studio' ); ?></th>
+						<td><input type="color" name="mind_map_custom_root_text" value="<?php echo esc_attr( get_option( 'mind_map_custom_root_text', '#ffffff' ) ); ?>" /></td>
+					</tr>
 				</table>
+				<script>
+				jQuery(document).ready(function($) {
+					function toggleCustomColors() {
+						var theme = $('select[name="mind_map_theme_light"]').val();
+						if (theme === 'custom') {
+							$('.custom-theme-only').show();
+						} else {
+							$('.custom-theme-only').hide();
+						}
+					}
+					$('select[name="mind_map_theme_light"]').on('change', toggleCustomColors);
+					toggleCustomColors();
+				});
+				</script>
 				<?php submit_button(); ?>
 			</form>
 		</div>
@@ -158,6 +192,7 @@ class Mind_Map_Studio {
 		$themes = array(
 			'primary'   => 'Primary',
 			'modern'    => 'Modern (جدید)',
+			'custom'    => 'Custom (سفارشی)',
 			'orange'    => 'Orange',
 			'blue'      => 'Blue',
 			'greyscale' => 'Greyscale',
@@ -191,8 +226,19 @@ class Mind_Map_Studio {
 		$data   = get_post_meta( $post->ID, '_mind_map_data', true );
 		$layout = get_post_meta( $post->ID, '_mind_map_layout', true ) ?: 'both';
 		wp_nonce_field( 'mind_map_save', 'mind_map_nonce' );
+
+		$custom_css = '';
+		if ( get_option( 'mind_map_theme_light' ) === 'custom' ) {
+			$custom_css = sprintf(
+				'--mms-node-bg: %s; --mms-node-text: %s; --mms-root-bg: %s; --mms-root-text: %s;',
+				get_option( 'mind_map_custom_node_bg', '#ffffff' ),
+				get_option( 'mind_map_custom_node_text', '#333333' ),
+				get_option( 'mind_map_custom_root_bg', '#334155' ),
+				get_option( 'mind_map_custom_root_text', '#ffffff' )
+			);
+		}
 		?>
-		<div id="mind-map-admin-editor">
+		<div id="mind-map-admin-editor" style="<?php echo esc_attr( $custom_css ); ?>">
 			<div class="mindmap-toolbar" style="margin-bottom:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
 				<button type="button" class="button" id="btn-insert-template"><?php _e( 'درج قالب', 'mind-map-studio' ); ?></button>
 				<button type="button" class="button" id="btn-clear-text"><?php _e( 'پاکسازی', 'mind-map-studio' ); ?></button>
@@ -340,9 +386,21 @@ class Mind_Map_Studio {
 
 		$unique_id = 'mms_' . $post_id . '_' . wp_unique_id();
 
+		// Custom theme CSS variables
+		$custom_css = '';
+		if ( get_option( 'mind_map_theme_light' ) === 'custom' || get_option( 'mind_map_theme_dark' ) === 'custom' ) {
+			$custom_css = sprintf(
+				'--mms-node-bg: %s; --mms-node-text: %s; --mms-root-bg: %s; --mms-root-text: %s;',
+				get_option( 'mind_map_custom_node_bg', '#ffffff' ),
+				get_option( 'mind_map_custom_node_text', '#333333' ),
+				get_option( 'mind_map_custom_root_bg', '#334155' ),
+				get_option( 'mind_map_custom_root_text', '#ffffff' )
+			);
+		}
+
 		ob_start();
 		?>
-		<div class="mindmap-studio-wrapper" style="width:100%;margin:20px 0;">
+		<div class="mindmap-studio-wrapper" style="width:100%;margin:20px 0; <?php echo esc_attr( $custom_css ); ?>">
 			<div class="mindmap-studio-capture" id="capture_<?php echo esc_attr( $unique_id ); ?>" style="width:100%;background:transparent;position:relative;">
 				<div
 					id="<?php echo esc_attr( $unique_id ); ?>"

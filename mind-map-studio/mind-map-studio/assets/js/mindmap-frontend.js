@@ -207,14 +207,13 @@
 
     /* ── Line Style Overrides ── */
     function applyLineStyleOverrides() {
-        if (typeof jsMind !== 'undefined' && jsMind.graph_svg) {
-            if (jsMind.graph_svg.prototype._bezier_to_orig) return; // Already overridden
+        if (typeof jsMind === 'undefined') return;
 
+        // SVG Engine
+        if (jsMind.graph_svg && !jsMind.graph_svg.prototype._bezier_to_orig) {
             jsMind.graph_svg.prototype._bezier_to_orig = jsMind.graph_svg.prototype._bezier_to;
-
             jsMind.graph_svg.prototype._bezier_to = function (path, x1, y1, x2, y2) {
                 var style = (this.opts.line_style || 'bezier');
-
                 if (style === 'straight') {
                     path.setAttribute('d', 'M' + x1 + ' ' + y1 + ' L' + x2 + ' ' + y2);
                 } else if (style === 'rounded') {
@@ -223,6 +222,27 @@
                 } else {
                     this._bezier_to_orig(path, x1, y1, x2, y2);
                 }
+            };
+        }
+
+        // Canvas Engine
+        if (jsMind.graph_canvas && !jsMind.graph_canvas.prototype._bezier_to_orig) {
+            jsMind.graph_canvas.prototype._bezier_to_orig = jsMind.graph_canvas.prototype._bezier_to;
+            jsMind.graph_canvas.prototype._bezier_to = function (ctx, x1, y1, x2, y2) {
+                var style = (this.opts.line_style || 'bezier');
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                if (style === 'straight') {
+                    ctx.lineTo(x2, y2);
+                } else if (style === 'rounded') {
+                    var midX = x1 + (x2 - x1) * 0.5;
+                    ctx.lineTo(midX, y1);
+                    ctx.lineTo(midX, y2);
+                    ctx.lineTo(x2, y2);
+                } else {
+                    ctx.bezierCurveTo(x1 + (x2 - x1) * 2 / 3, y1, x1, y2, x2, y2);
+                }
+                ctx.stroke();
             };
         }
     }
