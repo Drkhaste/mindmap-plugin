@@ -258,18 +258,25 @@
         var $ca = $('#capture_area');
         if (!wm.text) { $ca.css('background-image', 'none'); return; }
 
+        var spacing = wm.spacing_desktop || 220;
+        var height  = spacing * 0.72;
+
         var svg =
-            '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="160">' +
-            '<text x="110" y="80" dominant-baseline="middle" text-anchor="middle"' +
+            '<svg xmlns="http://www.w3.org/2000/svg" width="' + spacing + '" height="' + height + '">' +
+            '<text x="' + (spacing/2) + '" y="' + (height/2) + '" dominant-baseline="middle" text-anchor="middle"' +
             ' fill="'      + (wm.color   || '#94a3b8') + '"' +
             ' opacity="'   + (wm.opacity || 0.18)      + '"' +
             ' font-size="' + (wm.size    || 14)        + '"' +
             ' font-weight="600"' +
             ' font-family="Vazirmatn,Tahoma,sans-serif"' +
-            ' transform="rotate(-30,110,80)">' +
+            ' transform="rotate(-30,' + (spacing/2) + ',' + (height/2) + ')">' +
             wm.text + '</text></svg>';
 
-        $ca.css({ 'background-image': 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) + '")', 'background-repeat': 'repeat' });
+        $ca.css({
+            'background-image': 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) + '")',
+            'background-repeat': 'repeat',
+            'background-size': spacing + 'px ' + height + 'px'
+        });
     }
 
     /* ── template ── */

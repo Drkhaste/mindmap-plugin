@@ -73,6 +73,8 @@ class Mind_Map_Studio {
 	public static function register_settings() {
 		register_setting( 'mind_map_settings_group', 'mind_map_watermark_text',    array( 'default' => '' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_watermark_size',    array( 'default' => 14 ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_watermark_spacing_desktop', array( 'default' => 220 ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_watermark_spacing_mobile',  array( 'default' => 110 ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_watermark_color',   array( 'default' => '#94a3b8' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_watermark_opacity', array( 'default' => 0.18 ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_theme_light',       array( 'default' => 'primary' ) );
@@ -101,6 +103,14 @@ class Mind_Map_Studio {
 					<tr>
 						<th><?php _e( 'سایز واترمارک (px)', 'mind-map-studio' ); ?></th>
 						<td><input type="number" name="mind_map_watermark_size" value="<?php echo esc_attr( get_option( 'mind_map_watermark_size', 14 ) ); ?>" /></td>
+					</tr>
+					<tr>
+						<th><?php _e( 'فاصله واترمارک دسکتاپ (px)', 'mind-map-studio' ); ?></th>
+						<td><input type="number" name="mind_map_watermark_spacing_desktop" value="<?php echo esc_attr( get_option( 'mind_map_watermark_spacing_desktop', 220 ) ); ?>" /></td>
+					</tr>
+					<tr>
+						<th><?php _e( 'فاصله واترمارک موبایل (px)', 'mind-map-studio' ); ?></th>
+						<td><input type="number" name="mind_map_watermark_spacing_mobile" value="<?php echo esc_attr( get_option( 'mind_map_watermark_spacing_mobile', 110 ) ); ?>" /></td>
 					</tr>
 					<tr>
 						<th><?php _e( 'رنگ واترمارک', 'mind-map-studio' ); ?></th>
@@ -317,6 +327,8 @@ class Mind_Map_Studio {
 			'watermark' => array(
 				'text'    => get_option( 'mind_map_watermark_text', '' ),
 				'size'    => get_option( 'mind_map_watermark_size', 14 ),
+				'spacing_desktop' => get_option( 'mind_map_watermark_spacing_desktop', 220 ),
+				'spacing_mobile'  => get_option( 'mind_map_watermark_spacing_mobile', 110 ),
 				'color'   => get_option( 'mind_map_watermark_color', '#94a3b8' ),
 				'opacity' => get_option( 'mind_map_watermark_opacity', 0.18 ),
 			),
@@ -366,6 +378,8 @@ class Mind_Map_Studio {
 				'watermark'   => array(
 					'text'    => get_option( 'mind_map_watermark_text', '' ),
 					'size'    => (int) get_option( 'mind_map_watermark_size', 14 ),
+					'spacing_desktop' => (int) get_option( 'mind_map_watermark_spacing_desktop', 220 ),
+					'spacing_mobile'  => (int) get_option( 'mind_map_watermark_spacing_mobile', 110 ),
 					'color'   => get_option( 'mind_map_watermark_color', '#94a3b8' ),
 					'opacity' => (float) get_option( 'mind_map_watermark_opacity', 0.18 ),
 				),
