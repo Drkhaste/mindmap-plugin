@@ -31,6 +31,8 @@
             ? (getS('theme_dark')  || 'dark')
             : (getS('theme_light') || 'primary');
 
+        var settings = (typeof mindMapStudioSettings !== 'undefined') ? mindMapStudioSettings : {};
+
         if (!el.id) el.id = 'mms_' + Math.random().toString(36).slice(2, 9);
 
         el.style.width      = '100%';
@@ -45,7 +47,12 @@
                 theme     : theme,
                 mode      : 'full',
                 editable  : false,
-                view   : { engine: 'svg', line_width: 1.5, line_color: lineColor },
+                view   : {
+                    engine: 'svg',
+                    line_width: settings.line_width || 1.5,
+                    line_color: lineColor,
+                    line_style: settings.line_style || 'bezier'
+                },
                 layout : { hspace: 40, vspace: 14, pspace: 10 }
             });
             jm.show({
@@ -198,9 +205,35 @@
         return (typeof mindMapStudioSettings !== 'undefined') ? mindMapStudioSettings[key] : null;
     }
 
+    /* ── Line Style Overrides ── */
+    function applyLineStyleOverrides() {
+        if (typeof jsMind !== 'undefined' && jsMind.graph_svg) {
+            if (jsMind.graph_svg.prototype._bezier_to_orig) return; // Already overridden
+
+            jsMind.graph_svg.prototype._bezier_to_orig = jsMind.graph_svg.prototype._bezier_to;
+
+            jsMind.graph_svg.prototype._bezier_to = function (path, x1, y1, x2, y2) {
+                var style = (this.opts.line_style || 'bezier');
+
+                if (style === 'straight') {
+                    path.setAttribute('d', 'M' + x1 + ' ' + y1 + ' L' + x2 + ' ' + y2);
+                } else if (style === 'rounded') {
+                    var midX = x1 + (x2 - x1) * 0.5;
+                    path.setAttribute('d', 'M' + x1 + ' ' + y1 + ' L' + midX + ' ' + y1 + ' L' + midX + ' ' + y2 + ' L' + x2 + ' ' + y2);
+                } else {
+                    this._bezier_to_orig(path, x1, y1, x2, y2);
+                }
+            };
+        }
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 150); });
+        document.addEventListener('DOMContentLoaded', function () {
+            applyLineStyleOverrides();
+            setTimeout(boot, 150);
+        });
     } else {
+        applyLineStyleOverrides();
         setTimeout(boot, 150);
     }
 

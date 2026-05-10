@@ -406,3 +406,39 @@ jmnodes.theme-asbestos jmexpander {
 }
 jmnodes.theme-asbestos jmexpander:hover {
 }
+
+/* modern theme */
+jmnodes.theme-modern jmnode {
+    background-color: #fff;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    padding: 12px 18px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+jmnodes.theme-modern jmnode:hover {
+    background-color: #f8fafc;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+}
+jmnodes.theme-modern jmnode.selected {
+    background-color: #3b82f6;
+    color: #fff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+}
+jmnodes.theme-modern jmnode.root {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: #fff;
+    border: none;
+    font-size: 20px;
+    padding: 16px 24px;
+}
+jmnodes.theme-modern jmexpander {
+    background-color: #fff;
+    border-color: #e2e8f0;
+    color: #64748b;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
