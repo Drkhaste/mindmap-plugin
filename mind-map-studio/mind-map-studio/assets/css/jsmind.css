@@ -457,3 +457,63 @@ jmnodes.theme-custom jmnode.root {
     background-color: var(--mms-root-bg, #333);
     color: var(--mms-root-text, #fff);
 }
+
+.mms-modal jmnode {
+    font-family: inherit !important;
+}
+
+.mms-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.95);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+    animation: mmsFadeIn 0.3s ease;
+}
+
+@keyframes mmsFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.mms-modal-close {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: #fff;
+    font-size: 32px;
+    cursor: pointer;
+    line-height: 1;
+    z-index: 1000001;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.mms-modal-close:hover {
+    background: rgba(255,255,255,0.2);
+    transform: scale(1.1);
+}
+
+.mms-modal-content {
+    width: 95%;
+    height: 90%;
+    background: transparent !important;
+    position: relative;
+    overflow: auto !important;
+}
+
+.mms-modal-content jmnodes {
+    /* Ensure the map is visible against the dark modal background if using standard colors */
+}

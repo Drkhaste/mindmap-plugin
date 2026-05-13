@@ -289,6 +289,9 @@ class Mind_Map_Studio {
 				border-radius: <?php echo (int) get_option( 'mind_map_node_border_radius', 5 ); ?>px !important;
 			}
 			jmexpander { display: none !important; }
+			.mms-modal jmnode {
+				border-radius: <?php echo (int) get_option( 'mind_map_node_border_radius', 5 ); ?>px !important;
+			}
 		</style>
 		<?php
 	}
@@ -421,7 +424,9 @@ class Mind_Map_Studio {
 					class="mindmap-studio-container"
 					data-mindmap-data="<?php echo esc_attr( $data ); ?>"
 					data-mindmap-layout="<?php echo esc_attr( $layout ); ?>"
-					data-line-color="<?php echo esc_attr( get_option( 'mind_map_line_color', '#cbd5e1' ) ); ?>">
+					data-line-color="<?php echo esc_attr( get_option( 'mind_map_line_color', '#cbd5e1' ) ); ?>"
+					data-line-style="<?php echo esc_attr( get_option( 'mind_map_line_style', 'bezier' ) ); ?>"
+					data-line-width="<?php echo esc_attr( get_option( 'mind_map_line_width', 2 ) ); ?>">
 				</div>
 			</div>
 		</div>
@@ -433,6 +438,9 @@ class Mind_Map_Studio {
 			#<?php echo esc_attr( $unique_id ); ?> { direction: ltr !important; overflow: hidden !important; }
 			#<?php echo esc_attr( $unique_id ); ?> jmexpander { display: none !important; }
 			.mindmap-studio-capture { background-repeat: repeat !important; }
+			.mms-modal jmnode {
+				border-radius: <?php echo (int) get_option( 'mind_map_node_border_radius', 5 ); ?>px !important;
+			}
 		</style>
 		<?php
 		return ob_get_clean();
