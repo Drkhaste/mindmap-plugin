@@ -73,11 +73,20 @@ class Mind_Map_Studio {
 	public static function register_settings() {
 		register_setting( 'mind_map_settings_group', 'mind_map_watermark_text',    array( 'default' => '' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_watermark_size',    array( 'default' => 14 ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_watermark_spacing_desktop', array( 'default' => 220 ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_watermark_spacing_mobile',  array( 'default' => 110 ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_watermark_color',   array( 'default' => '#94a3b8' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_watermark_opacity', array( 'default' => 0.18 ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_theme_light',       array( 'default' => 'primary' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_theme_dark',        array( 'default' => 'dark' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_line_color',         array( 'default' => '#cbd5e1' ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_line_style',         array( 'default' => 'bezier' ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_line_width',         array( 'default' => 2 ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_node_border_radius', array( 'default' => 5 ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_custom_node_bg',     array( 'default' => '#ffffff' ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_custom_node_text',   array( 'default' => '#333333' ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_custom_root_bg',     array( 'default' => '#334155' ) );
+		register_setting( 'mind_map_settings_group', 'mind_map_custom_root_text',   array( 'default' => '#ffffff' ) );
 	}
 
 	public static function render_settings_page() {
@@ -94,6 +103,14 @@ class Mind_Map_Studio {
 					<tr>
 						<th><?php _e( 'سایز واترمارک (px)', 'mind-map-studio' ); ?></th>
 						<td><input type="number" name="mind_map_watermark_size" value="<?php echo esc_attr( get_option( 'mind_map_watermark_size', 14 ) ); ?>" /></td>
+					</tr>
+					<tr>
+						<th><?php _e( 'فاصله واترمارک دسکتاپ (px)', 'mind-map-studio' ); ?></th>
+						<td><input type="number" name="mind_map_watermark_spacing_desktop" value="<?php echo esc_attr( get_option( 'mind_map_watermark_spacing_desktop', 220 ) ); ?>" /></td>
+					</tr>
+					<tr>
+						<th><?php _e( 'فاصله واترمارک موبایل (px)', 'mind-map-studio' ); ?></th>
+						<td><input type="number" name="mind_map_watermark_spacing_mobile" value="<?php echo esc_attr( get_option( 'mind_map_watermark_spacing_mobile', 110 ) ); ?>" /></td>
 					</tr>
 					<tr>
 						<th><?php _e( 'رنگ واترمارک', 'mind-map-studio' ); ?></th>
@@ -126,7 +143,55 @@ class Mind_Map_Studio {
 							<p class="description"><?php _e( 'رنگ خطوط اتصال بین نودها در نمودار', 'mind-map-studio' ); ?></p>
 						</td>
 					</tr>
+					<tr>
+						<th><?php _e( 'استایل خطوط', 'mind-map-studio' ); ?></th>
+						<td>
+							<select name="mind_map_line_style">
+								<option value="bezier" <?php selected( get_option( 'mind_map_line_style', 'bezier' ), 'bezier' ); ?>><?php _e( 'منحنی (Bezier)', 'mind-map-studio' ); ?></option>
+								<option value="straight" <?php selected( get_option( 'mind_map_line_style', 'straight' ), 'straight' ); ?>><?php _e( 'مستقیم (Straight)', 'mind-map-studio' ); ?></option>
+								<option value="rounded" <?php selected( get_option( 'mind_map_line_style', 'rounded' ), 'rounded' ); ?>><?php _e( 'گوشه گرد (Rounded)', 'mind-map-studio' ); ?></option>
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<th><?php _e( 'ضخامت خطوط (px)', 'mind-map-studio' ); ?></th>
+						<td><input type="number" name="mind_map_line_width" value="<?php echo esc_attr( get_option( 'mind_map_line_width', 2 ) ); ?>" min="1" max="10" /></td>
+					</tr>
+					<tr>
+						<th><?php _e( 'گردی لبه نودها (px)', 'mind-map-studio' ); ?></th>
+						<td><input type="number" name="mind_map_node_border_radius" value="<?php echo esc_attr( get_option( 'mind_map_node_border_radius', 5 ) ); ?>" min="0" max="50" /></td>
+					</tr>
+					<tr class="custom-theme-only">
+						<th><?php _e( 'رنگ پس‌زمینه نودها (تم کاستوم)', 'mind-map-studio' ); ?></th>
+						<td><input type="color" name="mind_map_custom_node_bg" value="<?php echo esc_attr( get_option( 'mind_map_custom_node_bg', '#ffffff' ) ); ?>" /></td>
+					</tr>
+					<tr class="custom-theme-only">
+						<th><?php _e( 'رنگ متن نودها (تم کاستوم)', 'mind-map-studio' ); ?></th>
+						<td><input type="color" name="mind_map_custom_node_text" value="<?php echo esc_attr( get_option( 'mind_map_custom_node_text', '#333333' ) ); ?>" /></td>
+					</tr>
+					<tr class="custom-theme-only">
+						<th><?php _e( 'رنگ پس‌زمینه ریشه (تم کاستوم)', 'mind-map-studio' ); ?></th>
+						<td><input type="color" name="mind_map_custom_root_bg" value="<?php echo esc_attr( get_option( 'mind_map_custom_root_bg', '#334155' ) ); ?>" /></td>
+					</tr>
+					<tr class="custom-theme-only">
+						<th><?php _e( 'رنگ متن ریشه (تم کاستوم)', 'mind-map-studio' ); ?></th>
+						<td><input type="color" name="mind_map_custom_root_text" value="<?php echo esc_attr( get_option( 'mind_map_custom_root_text', '#ffffff' ) ); ?>" /></td>
+					</tr>
 				</table>
+				<script>
+				jQuery(document).ready(function($) {
+					function toggleCustomColors() {
+						var theme = $('select[name="mind_map_theme_light"]').val();
+						if (theme === 'custom') {
+							$('.custom-theme-only').show();
+						} else {
+							$('.custom-theme-only').hide();
+						}
+					}
+					$('select[name="mind_map_theme_light"]').on('change', toggleCustomColors);
+					toggleCustomColors();
+				});
+				</script>
 				<?php submit_button(); ?>
 			</form>
 		</div>
@@ -136,6 +201,8 @@ class Mind_Map_Studio {
 	private static function render_theme_options( $selected ) {
 		$themes = array(
 			'primary'   => 'Primary',
+			'modern'    => 'Modern (جدید)',
+			'custom'    => 'Custom (سفارشی)',
 			'orange'    => 'Orange',
 			'blue'      => 'Blue',
 			'greyscale' => 'Greyscale',
@@ -169,15 +236,33 @@ class Mind_Map_Studio {
 		$data   = get_post_meta( $post->ID, '_mind_map_data', true );
 		$layout = get_post_meta( $post->ID, '_mind_map_layout', true ) ?: 'both';
 		wp_nonce_field( 'mind_map_save', 'mind_map_nonce' );
+
+		$custom_css = '';
+		if ( get_option( 'mind_map_theme_light' ) === 'custom' ) {
+			$custom_css = sprintf(
+				'--mms-node-bg: %s; --mms-node-text: %s; --mms-root-bg: %s; --mms-root-text: %s;',
+				get_option( 'mind_map_custom_node_bg', '#ffffff' ),
+				get_option( 'mind_map_custom_node_text', '#333333' ),
+				get_option( 'mind_map_custom_root_bg', '#334155' ),
+				get_option( 'mind_map_custom_root_text', '#ffffff' )
+			);
+		}
 		?>
-		<div id="mind-map-admin-editor">
-			<div class="mindmap-toolbar" style="margin-bottom:10px;display:flex;gap:8px;align-items:center;">
+		<div id="mind-map-admin-editor" style="<?php echo esc_attr( $custom_css ); ?>">
+			<div class="mindmap-toolbar" style="margin-bottom:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
 				<button type="button" class="button" id="btn-insert-template"><?php _e( 'درج قالب', 'mind-map-studio' ); ?></button>
 				<button type="button" class="button" id="btn-clear-text"><?php _e( 'پاکسازی', 'mind-map-studio' ); ?></button>
 				<button type="button" class="button <?php echo $layout === 'both' ? 'button-primary' : ''; ?>" id="btn-toggle-layout">
 					<?php echo $layout === 'both' ? __( '📏 چیدمان دو طرفه', 'mind-map-studio' ) : __( '🌲 درختی یک طرفه', 'mind-map-studio' ); ?>
 				</button>
 				<input type="hidden" name="mind_map_layout" id="mind_map_layout" value="<?php echo esc_attr( $layout ); ?>">
+
+				<div class="visual-edit-group" style="margin-right:20px; display:flex; gap:5px; border-right:1px solid #ccc; padding-right:15px;">
+					<button type="button" class="button button-secondary" id="btn-add-child" title="<?php _e( 'افزودن نود فرزند', 'mind-map-studio' ); ?>"><span class="dashicons dashicons-plus-alt" style="margin-top:4px;"></span> <?php _e( 'فرزند', 'mind-map-studio' ); ?></button>
+					<button type="button" class="button button-secondary" id="btn-add-sibling" title="<?php _e( 'افزودن نود هم‌سطح', 'mind-map-studio' ); ?>"><span class="dashicons dashicons-plus" style="margin-top:4px;"></span> <?php _e( 'هم‌سطح', 'mind-map-studio' ); ?></button>
+					<button type="button" class="button button-link-delete" id="btn-delete-node" title="<?php _e( 'حذف نود', 'mind-map-studio' ); ?>" style="color:#d63638;"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+				</div>
+
 				<span style="margin-right:auto;font-size:12px;color:#666;"><?php _e( 'Tab = فاصله‌گذاری، Shift+Tab = برگشت', 'mind-map-studio' ); ?></span>
 			</div>
 
@@ -199,8 +284,14 @@ class Mind_Map_Studio {
 			</div>
 		</div>
 		<style>
-			#jsmind_container jmnode { font-family: inherit !important; }
+			#jsmind_container jmnode {
+				font-family: inherit !important;
+				border-radius: <?php echo (int) get_option( 'mind_map_node_border_radius', 5 ); ?>px !important;
+			}
 			jmexpander { display: none !important; }
+			.mms-modal jmnode {
+				border-radius: <?php echo (int) get_option( 'mind_map_node_border_radius', 5 ); ?>px !important;
+			}
 		</style>
 		<?php
 	}
@@ -239,10 +330,15 @@ class Mind_Map_Studio {
 			'watermark' => array(
 				'text'    => get_option( 'mind_map_watermark_text', '' ),
 				'size'    => get_option( 'mind_map_watermark_size', 14 ),
+				'spacing_desktop' => get_option( 'mind_map_watermark_spacing_desktop', 220 ),
+				'spacing_mobile'  => get_option( 'mind_map_watermark_spacing_mobile', 110 ),
 				'color'   => get_option( 'mind_map_watermark_color', '#94a3b8' ),
 				'opacity' => get_option( 'mind_map_watermark_opacity', 0.18 ),
 			),
-			'theme' => get_option( 'mind_map_theme_light', 'primary' ),
+			'theme'      => get_option( 'mind_map_theme_light', 'primary' ),
+			'line_style' => get_option( 'mind_map_line_style', 'bezier' ),
+			'line_width' => get_option( 'mind_map_line_width', 2 ),
+			'border_radius' => get_option( 'mind_map_node_border_radius', 5 ),
 		) );
 	}
 
@@ -285,12 +381,17 @@ class Mind_Map_Studio {
 				'watermark'   => array(
 					'text'    => get_option( 'mind_map_watermark_text', '' ),
 					'size'    => (int) get_option( 'mind_map_watermark_size', 14 ),
+					'spacing_desktop' => (int) get_option( 'mind_map_watermark_spacing_desktop', 220 ),
+					'spacing_mobile'  => (int) get_option( 'mind_map_watermark_spacing_mobile', 110 ),
 					'color'   => get_option( 'mind_map_watermark_color', '#94a3b8' ),
 					'opacity' => (float) get_option( 'mind_map_watermark_opacity', 0.18 ),
 				),
 				'theme_light' => get_option( 'mind_map_theme_light', 'primary' ),
 				'theme_dark'  => get_option( 'mind_map_theme_dark', 'dark' ),
 				'line_color'  => get_option( 'mind_map_line_color', '#cbd5e1' ),
+				'line_style'  => get_option( 'mind_map_line_style', 'bezier' ),
+				'line_width'  => get_option( 'mind_map_line_width', 2 ),
+				'border_radius' => get_option( 'mind_map_node_border_radius', 5 ),
 			);
 			wp_add_inline_script(
 				'mindmap-studio-frontend',
@@ -302,24 +403,44 @@ class Mind_Map_Studio {
 
 		$unique_id = 'mms_' . $post_id . '_' . wp_unique_id();
 
+		// Custom theme CSS variables
+		$custom_css = '';
+		if ( get_option( 'mind_map_theme_light' ) === 'custom' || get_option( 'mind_map_theme_dark' ) === 'custom' ) {
+			$custom_css = sprintf(
+				'--mms-node-bg: %s; --mms-node-text: %s; --mms-root-bg: %s; --mms-root-text: %s;',
+				get_option( 'mind_map_custom_node_bg', '#ffffff' ),
+				get_option( 'mind_map_custom_node_text', '#333333' ),
+				get_option( 'mind_map_custom_root_bg', '#334155' ),
+				get_option( 'mind_map_custom_root_text', '#ffffff' )
+			);
+		}
+
 		ob_start();
 		?>
-		<div class="mindmap-studio-wrapper" style="width:100%;margin:20px 0;">
+		<div class="mindmap-studio-wrapper" style="width:100%;margin:20px 0; <?php echo esc_attr( $custom_css ); ?>">
 			<div class="mindmap-studio-capture" id="capture_<?php echo esc_attr( $unique_id ); ?>" style="width:100%;background:transparent;position:relative;">
 				<div
 					id="<?php echo esc_attr( $unique_id ); ?>"
 					class="mindmap-studio-container"
 					data-mindmap-data="<?php echo esc_attr( $data ); ?>"
 					data-mindmap-layout="<?php echo esc_attr( $layout ); ?>"
-					data-line-color="<?php echo esc_attr( get_option( 'mind_map_line_color', '#cbd5e1' ) ); ?>">
+					data-line-color="<?php echo esc_attr( get_option( 'mind_map_line_color', '#cbd5e1' ) ); ?>"
+					data-line-style="<?php echo esc_attr( get_option( 'mind_map_line_style', 'bezier' ) ); ?>"
+					data-line-width="<?php echo esc_attr( get_option( 'mind_map_line_width', 2 ) ); ?>">
 				</div>
 			</div>
 		</div>
 		<style>
-			#<?php echo esc_attr( $unique_id ); ?> jmnode { font-family: inherit !important; }
+			#<?php echo esc_attr( $unique_id ); ?> jmnode {
+				font-family: inherit !important;
+				border-radius: <?php echo (int) get_option( 'mind_map_node_border_radius', 5 ); ?>px !important;
+			}
 			#<?php echo esc_attr( $unique_id ); ?> { direction: ltr !important; overflow: hidden !important; }
 			#<?php echo esc_attr( $unique_id ); ?> jmexpander { display: none !important; }
 			.mindmap-studio-capture { background-repeat: repeat !important; }
+			.mms-modal jmnode {
+				border-radius: <?php echo (int) get_option( 'mind_map_node_border_radius', 5 ); ?>px !important;
+			}
 		</style>
 		<?php
 		return ob_get_clean();
