@@ -247,11 +247,15 @@
     function openModal(originalEl) {
         var modal = document.createElement('div');
         modal.className = 'mms-modal';
+        document.body.classList.add('mms-modal-open');
 
         var closeBtn = document.createElement('div');
         closeBtn.className = 'mms-modal-close';
         closeBtn.innerHTML = '×';
-        closeBtn.onclick = function() { document.body.removeChild(modal); };
+        closeBtn.onclick = function() {
+            document.body.removeChild(modal);
+            document.body.classList.remove('mms-modal-open');
+        };
         modal.appendChild(closeBtn);
 
         var content = document.createElement('div');
@@ -301,6 +305,12 @@
         var startDist = 0;
         var initialZoom = 1;
         var isPinching = false;
+        var rafId = null;
+
+        var updateScale = function() {
+            scaleAndCenter(el);
+            rafId = null;
+        };
 
         el.addEventListener('touchstart', function(e) {
             if (e.touches.length === 2) {
@@ -325,19 +335,19 @@
                 var newZoom = Math.min(Math.max(initialZoom * zoomFactor, 0.5), 10);
 
                 el.setAttribute('data-user-zoom', newZoom.toString());
-                scaleAndCenter(el);
+                if (!rafId) rafId = requestAnimationFrame(updateScale);
             }
         }, { passive: false });
 
         el.addEventListener('touchend', function(e) {
-            if (e.touches.length < 2) {
-                isPinching = false;
-            }
+            if (e.touches.length < 2) isPinching = false;
         });
 
-        // Mouse/Touch Drag-to-scroll
+        // Drag-to-scroll with momentum
         var isDragging = false;
         var startX, startY, scrollLeft, scrollTop;
+        var velocityX = 0, velocityY = 0;
+        var lastX, lastY, lastTime;
 
         var startDragging = function(e) {
             isDragging = true;
@@ -348,23 +358,45 @@
             startY = pageY - el.offsetTop;
             scrollLeft = el.scrollLeft;
             scrollTop = el.scrollTop;
+            lastX = pageX;
+            lastY = pageY;
+            lastTime = Date.now();
+            velocityX = velocityY = 0;
         };
 
         var stopDragging = function() {
             isDragging = false;
             el.style.cursor = 'grab';
+            requestAnimationFrame(applyMomentum);
         };
 
         var moveDragging = function(e) {
             if (!isDragging || isPinching) return;
             var pageX = e.pageX || (e.touches ? e.touches[0].pageX : 0);
             var pageY = e.pageY || (e.touches ? e.touches[0].pageY : 0);
+            var currentTime = Date.now();
+            var dt = currentTime - lastTime;
+            if (dt > 0) {
+                velocityX = (pageX - lastX) / dt;
+                velocityY = (pageY - lastY) / dt;
+            }
+            lastX = pageX;
+            lastY = pageY;
+            lastTime = currentTime;
+
             var x = pageX - el.offsetLeft;
             var y = pageY - el.offsetTop;
-            var walkX = (x - startX);
-            var walkY = (y - startY);
-            el.scrollLeft = scrollLeft - walkX;
-            el.scrollTop = scrollTop - walkY;
+            el.scrollLeft = scrollLeft - (x - startX);
+            el.scrollTop = scrollTop - (y - startY);
+        };
+
+        var applyMomentum = function() {
+            if (isDragging || (Math.abs(velocityX) < 0.1 && Math.abs(velocityY) < 0.1)) return;
+            el.scrollLeft -= velocityX * 16;
+            el.scrollTop -= velocityY * 16;
+            velocityX *= 0.92;
+            velocityY *= 0.92;
+            requestAnimationFrame(applyMomentum);
         };
 
         el.addEventListener('mousedown', startDragging);
@@ -379,8 +411,6 @@
         el.addEventListener('touchmove', function(e) {
             if (e.touches.length === 1) moveDragging(e);
         }, { passive: true });
-
-        el.style.cursor = 'grab';
     }
 
     function getS(key) {

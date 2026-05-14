@@ -475,6 +475,13 @@ jmnodes.theme-custom jmnode.root {
     justify-content: center;
     backdrop-filter: blur(8px);
     animation: mmsFadeIn 0.3s ease;
+    touch-action: none;
+    overscroll-behavior: contain;
+}
+
+body.mms-modal-open {
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
 }
 
 @keyframes mmsFadeIn {
