@@ -25,4 +25,5 @@ function mms_activate() {
 	Mind_Map_Studio::register_post_types();
 	Mind_Map_Studio::custom_rewrite_rules();
 	flush_rewrite_rules();
+	update_option( 'mms_flush_rules_needed', 1 );
 }

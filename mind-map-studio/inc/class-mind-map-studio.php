@@ -30,6 +30,16 @@ class Mind_Map_Studio {
 		add_filter( 'manage_' . self::CPT_SLUG . '_posts_columns',   array( __CLASS__, 'add_shortcode_column' ) );
 		add_action( 'manage_' . self::CPT_SLUG . '_posts_custom_column', array( __CLASS__, 'render_shortcode_column' ), 10, 2 );
 		add_filter( 'template_include',                              array( __CLASS__, 'load_custom_templates' ) );
+		add_filter( 'post_type_link',                                array( __CLASS__, 'filter_mms_links' ), 10, 2 );
+
+		// Flush rules if needed (Temporary for update)
+		if ( get_option( 'mms_flush_rules_needed' ) ) {
+			add_action( 'init', function() {
+				self::custom_rewrite_rules();
+				flush_rewrite_rules();
+				delete_option( 'mms_flush_rules_needed' );
+			}, 99 );
+		}
 	}
 
 	/* ──────────────────────────────────────────────
@@ -763,17 +773,17 @@ class Mind_Map_Studio {
 	public static function custom_rewrite_rules() {
 		add_rewrite_rule(
 			'^mindmap/([^/]+)/([^/]+)/([^/]+)/?$',
-			'index.php?mms_topic=$matches[3]&mms_topic_slug=$matches[3]&mms_lesson_slug=$matches[2]&mms_course_slug=$matches[1]',
+			'index.php?post_type=mms_topic&name=$matches[3]&mms_topic_slug=$matches[3]&mms_lesson_slug=$matches[2]&mms_course_slug=$matches[1]',
 			'top'
 		);
 		add_rewrite_rule(
 			'^mindmap/([^/]+)/([^/]+)/?$',
-			'index.php?mms_lesson=$matches[2]&mms_lesson_slug=$matches[2]&mms_course_slug=$matches[1]',
+			'index.php?post_type=mms_lesson&name=$matches[2]&mms_lesson_slug=$matches[2]&mms_course_slug=$matches[1]',
 			'top'
 		);
 		add_rewrite_rule(
 			'^mindmap/([^/]+)/?$',
-			'index.php?mms_course=$matches[1]&mms_course_slug=$matches[1]',
+			'index.php?post_type=mms_course&name=$matches[1]&mms_course_slug=$matches[1]',
 			'top'
 		);
 	}
@@ -787,7 +797,7 @@ class Mind_Map_Studio {
 
 	public static function get_mms_permalink( $post_id ) {
 		$post = get_post( $post_id );
-		if ( ! $post ) return get_permalink( $post_id );
+		if ( ! $post ) return '';
 
 		$post_type = $post->post_type;
 		$slugs = array();
@@ -829,6 +839,21 @@ class Mind_Map_Studio {
 			return home_url( '/mindmap/' . implode( '/', $slugs ) . '/' );
 		}
 
-		return get_permalink( $post_id );
+		// If it's one of our CPTs but we don't have enough slugs (e.g. no parent set), return a basic link
+		$mms_post_types = array( self::CPT_COURSE, self::CPT_LESSON, self::CPT_TOPIC );
+		if ( in_array( $post_type, $mms_post_types ) ) {
+			return home_url( '/mindmap/' . $post->post_name . '/' );
+		}
+
+		return ''; // Fallback for filter
+	}
+
+	public static function filter_mms_links( $post_link, $post ) {
+		$mms_post_types = array( self::CPT_COURSE, self::CPT_LESSON, self::CPT_TOPIC );
+		if ( in_array( $post->post_type, $mms_post_types ) ) {
+			$new_link = self::get_mms_permalink( $post->ID );
+			if ( $new_link ) return $new_link;
+		}
+		return $post_link;
 	}
 }
