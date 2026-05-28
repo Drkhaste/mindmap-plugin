@@ -19,3 +19,11 @@ function mind_map_studio_init() {
 	Mind_Map_Studio::init();
 }
 add_action( 'plugins_loaded', 'mind_map_studio_init' );
+
+register_activation_hook( __FILE__, 'mms_activate' );
+function mms_activate() {
+	Mind_Map_Studio::register_post_types();
+	Mind_Map_Studio::custom_rewrite_rules();
+	flush_rewrite_rules();
+	update_option( 'mms_flush_rules_needed_v3', 1 );
+}
