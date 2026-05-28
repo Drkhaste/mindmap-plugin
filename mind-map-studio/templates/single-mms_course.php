@@ -1,9 +1,10 @@
 <?php
     get_header();
+    wp_enqueue_style( 'mms-frontend' );
     $course_id = get_the_ID();
 ?>
 
-<main class="container">
+<main class="mms-container">
     <div class="breadcrumb-container">
         <div class="breadcrumb-item active">
             <span><?php the_title(); ?></span>

@@ -1,10 +1,11 @@
 <?php
     get_header();
+    wp_enqueue_style( 'mms-frontend' );
     $lesson_id = get_the_ID();
     $course_id = get_post_meta( $lesson_id, '_mms_course_id', true );
 ?>
 
-<main class="container">
+<main class="mms-container">
     <div class="breadcrumb-container">
         <?php if ( $course_id ) : ?>
             <div class="breadcrumb-item">
