@@ -763,17 +763,17 @@ class Mind_Map_Studio {
 	public static function custom_rewrite_rules() {
 		add_rewrite_rule(
 			'^mindmap/([^/]+)/([^/]+)/([^/]+)/?$',
-			'index.php?post_type=mms_topic&name=$matches[3]&mms_topic_slug=$matches[3]&mms_lesson_slug=$matches[2]&mms_course_slug=$matches[1]',
+			'index.php?mms_topic=$matches[3]&mms_topic_slug=$matches[3]&mms_lesson_slug=$matches[2]&mms_course_slug=$matches[1]',
 			'top'
 		);
 		add_rewrite_rule(
 			'^mindmap/([^/]+)/([^/]+)/?$',
-			'index.php?post_type=mms_lesson&name=$matches[2]&mms_lesson_slug=$matches[2]&mms_course_slug=$matches[1]',
+			'index.php?mms_lesson=$matches[2]&mms_lesson_slug=$matches[2]&mms_course_slug=$matches[1]',
 			'top'
 		);
 		add_rewrite_rule(
 			'^mindmap/([^/]+)/?$',
-			'index.php?post_type=mms_course&name=$matches[1]&mms_course_slug=$matches[1]',
+			'index.php?mms_course=$matches[1]&mms_course_slug=$matches[1]',
 			'top'
 		);
 	}
@@ -786,33 +786,42 @@ class Mind_Map_Studio {
 	}
 
 	public static function get_mms_permalink( $post_id ) {
-		$post_type = get_post_type( $post_id );
+		$post = get_post( $post_id );
+		if ( ! $post ) return get_permalink( $post_id );
+
+		$post_type = $post->post_type;
 		$slugs = array();
 
 		switch ( $post_type ) {
 			case self::CPT_TOPIC:
-				$topic_slug = get_post_meta( $post_id, '_mms_english_slug', true );
+				$topic_slug = $post->post_name;
 				$lesson_id = get_post_meta( $post_id, '_mms_lesson_id', true );
 				if ( $lesson_id ) {
-					$lesson_slug = get_post_meta( $lesson_id, '_mms_english_slug', true );
-					$course_id = get_post_meta( $lesson_id, '_mms_course_id', true );
+					$lesson = get_post( $lesson_id );
+					$lesson_slug = $lesson ? $lesson->post_name : '';
+					$course_id = get_post_meta( $post_id, '_mms_course_id', true );
 					if ( $course_id ) {
-						$course_slug = get_post_meta( $course_id, '_mms_english_slug', true );
-						$slugs = array( $course_slug, $lesson_slug, $topic_slug );
+						$course = get_post( $course_id );
+						$course_slug = $course ? $course->post_name : '';
+						if ( $topic_slug && $lesson_slug && $course_slug ) {
+							$slugs = array( $course_slug, $lesson_slug, $topic_slug );
+						}
 					}
 				}
 				break;
 			case self::CPT_LESSON:
-				$lesson_slug = get_post_meta( $post_id, '_mms_english_slug', true );
+				$lesson_slug = $post->post_name;
 				$course_id = get_post_meta( $post_id, '_mms_course_id', true );
 				if ( $course_id ) {
-					$course_slug = get_post_meta( $course_id, '_mms_english_slug', true );
-					$slugs = array( $course_slug, $lesson_slug );
+					$course = get_post( $course_id );
+					$course_slug = $course ? $course->post_name : '';
+					if ( $lesson_slug && $course_slug ) {
+						$slugs = array( $course_slug, $lesson_slug );
+					}
 				}
 				break;
 			case self::CPT_COURSE:
-				$course_slug = get_post_meta( $post_id, '_mms_english_slug', true );
-				$slugs = array( $course_slug );
+				$slugs = array( $post->post_name );
 				break;
 		}
 
