@@ -14,7 +14,7 @@ class Mind_Map_Studio {
 	const SETTINGS_SLUG = 'mind-map-settings';
 
 	public static function init() {
-		add_action( 'init',                                          array( __CLASS__, 'register_post_types' ) );
+		add_action( 'init',                                          array( __CLASS__, 'register_post_types' ), 5 );
 		add_action( 'admin_menu',                                    array( __CLASS__, 'add_admin_menu' ) );
 		add_action( 'add_meta_boxes',                                array( __CLASS__, 'add_meta_boxes' ) );
 		add_action( 'save_post',                                     array( __CLASS__, 'save_meta_box_data' ) );
@@ -25,21 +25,28 @@ class Mind_Map_Studio {
 		add_action( 'wp_ajax_mind_map_get_list',                     array( __CLASS__, 'ajax_get_mindmap_list' ) );
 		add_action( 'wp_ajax_mms_get_lessons',                       array( __CLASS__, 'ajax_get_lessons' ) );
 		add_action( 'wp_ajax_mms_update_order',                      array( __CLASS__, 'ajax_update_order' ) );
-		add_action( 'init',                                          array( __CLASS__, 'custom_rewrite_rules' ) );
+		add_action( 'init',                                          array( __CLASS__, 'custom_rewrite_rules' ), 10 );
 		add_filter( 'query_vars',                                    array( __CLASS__, 'register_query_vars' ) );
 		add_filter( 'manage_' . self::CPT_SLUG . '_posts_columns',   array( __CLASS__, 'add_shortcode_column' ) );
 		add_action( 'manage_' . self::CPT_SLUG . '_posts_custom_column', array( __CLASS__, 'render_shortcode_column' ), 10, 2 );
 		add_filter( 'template_include',                              array( __CLASS__, 'load_custom_templates' ) );
 		add_filter( 'post_type_link',                                array( __CLASS__, 'filter_mms_links' ), 10, 2 );
 
-		// Flush rules if needed (Temporary for update)
-		if ( get_option( 'mms_flush_rules_needed' ) ) {
+		// Flush rules if needed
+		if ( ! get_option( 'mms_rules_flushed_v6' ) ) {
 			add_action( 'init', function() {
+				self::register_post_types();
 				self::custom_rewrite_rules();
 				flush_rewrite_rules();
-				delete_option( 'mms_flush_rules_needed' );
+				update_option( 'mms_rules_flushed_v6', 1 );
 			}, 99 );
 		}
+
+		// Disable canonical redirect for mindmap URLs to prevent conflicts with other plugins
+		add_filter( 'redirect_canonical', function( $redirect_url, $requested_url ) {
+			if ( strpos( $requested_url, '/mindmap/' ) !== false ) return false;
+			return $redirect_url;
+		}, 10, 2 );
 	}
 
 	/* ──────────────────────────────────────────────
@@ -59,7 +66,7 @@ class Mind_Map_Studio {
 			'public'       => true,
 			'show_ui'      => true,
 			'show_in_menu' => 'mms_builder_page',
-			'rewrite'      => array( 'slug' => 'mms_course' ),
+			'rewrite'      => false,
 			'query_var'    => true,
 			'supports'     => array( 'title', 'editor', 'thumbnail' ),
 			'menu_icon'    => 'dashicons-welcome-learn-more',
@@ -77,7 +84,7 @@ class Mind_Map_Studio {
 			'public'       => true,
 			'show_ui'      => true,
 			'show_in_menu' => 'mms_builder_page',
-			'rewrite'      => array( 'slug' => 'mms_lesson' ),
+			'rewrite'      => false,
 			'query_var'    => true,
 			'supports'     => array( 'title', 'editor', 'thumbnail', 'page-attributes' ),
 		) );
@@ -94,7 +101,7 @@ class Mind_Map_Studio {
 			'public'       => true,
 			'show_ui'      => true,
 			'show_in_menu' => 'mms_builder_page',
-			'rewrite'      => array( 'slug' => 'mms_topic' ),
+			'rewrite'      => false,
 			'query_var'    => true,
 			'supports'     => array( 'title', 'editor', 'thumbnail', 'page-attributes' ),
 		) );
@@ -777,17 +784,17 @@ class Mind_Map_Studio {
 	public static function custom_rewrite_rules() {
 		add_rewrite_rule(
 			'^mindmap/([^/]+)/([^/]+)/([^/]+)/?$',
-			'index.php?mms_topic=$matches[3]&mms_course_slug=$matches[1]&mms_lesson_slug=$matches[2]&mms_topic_slug=$matches[3]',
+			'index.php?post_type=mms_topic&name=$matches[3]',
 			'top'
 		);
 		add_rewrite_rule(
 			'^mindmap/([^/]+)/([^/]+)/?$',
-			'index.php?mms_lesson=$matches[2]&mms_course_slug=$matches[1]&mms_lesson_slug=$matches[2]',
+			'index.php?post_type=mms_lesson&name=$matches[2]',
 			'top'
 		);
 		add_rewrite_rule(
 			'^mindmap/([^/]+)/?$',
-			'index.php?mms_course=$matches[1]&mms_course_slug=$matches[1]',
+			'index.php?post_type=mms_course&name=$matches[1]',
 			'top'
 		);
 	}
@@ -840,7 +847,7 @@ class Mind_Map_Studio {
 		}
 
 		if ( ! empty( $slugs ) ) {
-			return home_url( '/mindmap/' . implode( '/', $slugs ) . '/' );
+			return user_trailingslashit( home_url( '/mindmap/' . implode( '/', $slugs ) ) );
 		}
 
 		// If it's one of our CPTs but we don't have enough slugs (e.g. no parent set), return a basic link
