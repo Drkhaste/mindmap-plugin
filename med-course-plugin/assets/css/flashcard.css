@@ -1,0 +1,46 @@
+/* Styles for flashcards and upload section */
+.flashcard-box {
+    margin-top: 40px; border-top: 2px dashed #cbd5e1; padding-top: 20px;
+}
+.fc-item {
+    background: var(--bg-card); padding: 15px; margin-bottom: 10px;
+    border-radius: 10px; border: 1px solid #e2e8f0;
+}
+.fc-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: bold;
+    margin-top: 10px;
+    transition: all 0.2s ease;
+}
+
+.fc-btn:hover {
+    filter: brightness(95%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fc-btn:active {
+    transform: scale(0.98);
+}
+.fc-ans { display: none; margin-top: 10px; color: var(--text-main); border-top: 1px solid #e2e8f0; padding-top: 10px; }
+
+.upload-section {
+    background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 20px; margin-bottom: 30px;
+}
+.upload-section h4 { margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; }
+.upload-section .form-row { display: flex; align-items: center; }
+.upload-section .file-input { flex-grow: 1; }
+.upload-section .fc-btn { margin-top: 0; margin-right: 15px; } /* RTL */
+
+.messages { margin-bottom: 15px; }
+.alert { padding: 15px; margin-bottom: 1rem; border: 1px solid transparent; border-radius: .25rem; }
+.alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
+.alert-danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
+.alert-warning { color: #856404; background-color: #fff3cd; border-color: #ffeeba; }

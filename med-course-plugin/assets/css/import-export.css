@@ -1,0 +1,32 @@
+#mcp-import-export-container {
+    border: 1px solid #ccd0d4;
+    padding: 20px;
+    background: #fff;
+    border-radius: 4px;
+}
+
+#mcp-export-container,
+#mcp-import-container {
+    margin-top: 20px;
+}
+
+#mcp-instructions-container {
+    margin-top: 30px;
+}
+
+.mcp-instructions {
+    display: none;
+}
+
+#mcp-instructions-container h3 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+#mcp-instructions-container pre {
+    background: #f1f1f1;
+    padding: 15px;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
