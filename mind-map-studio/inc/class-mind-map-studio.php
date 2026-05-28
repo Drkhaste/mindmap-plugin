@@ -59,7 +59,8 @@ class Mind_Map_Studio {
 			'public'       => true,
 			'show_ui'      => true,
 			'show_in_menu' => 'mms_builder_page',
-			'rewrite'      => false,
+			'rewrite'      => array( 'slug' => 'mms_course' ),
+			'query_var'    => true,
 			'supports'     => array( 'title', 'editor', 'thumbnail' ),
 			'menu_icon'    => 'dashicons-welcome-learn-more',
 		) );
@@ -76,7 +77,8 @@ class Mind_Map_Studio {
 			'public'       => true,
 			'show_ui'      => true,
 			'show_in_menu' => 'mms_builder_page',
-			'rewrite'      => false,
+			'rewrite'      => array( 'slug' => 'mms_lesson' ),
+			'query_var'    => true,
 			'supports'     => array( 'title', 'editor', 'thumbnail', 'page-attributes' ),
 		) );
 
@@ -92,7 +94,8 @@ class Mind_Map_Studio {
 			'public'       => true,
 			'show_ui'      => true,
 			'show_in_menu' => 'mms_builder_page',
-			'rewrite'      => false,
+			'rewrite'      => array( 'slug' => 'mms_topic' ),
+			'query_var'    => true,
 			'supports'     => array( 'title', 'editor', 'thumbnail', 'page-attributes' ),
 		) );
 
@@ -105,6 +108,7 @@ class Mind_Map_Studio {
 			'public'       => true,
 			'show_ui'      => true,
 			'show_in_menu' => 'mms_builder_page',
+			'rewrite'      => array( 'slug' => 'old-mindmap' ),
 			'supports'     => array( 'title' ),
 		) );
 	}
@@ -773,17 +777,17 @@ class Mind_Map_Studio {
 	public static function custom_rewrite_rules() {
 		add_rewrite_rule(
 			'^mindmap/([^/]+)/([^/]+)/([^/]+)/?$',
-			'index.php?post_type=mms_topic&name=$matches[3]&mms_topic_slug=$matches[3]&mms_lesson_slug=$matches[2]&mms_course_slug=$matches[1]',
+			'index.php?mms_topic=$matches[3]&mms_course_slug=$matches[1]&mms_lesson_slug=$matches[2]&mms_topic_slug=$matches[3]',
 			'top'
 		);
 		add_rewrite_rule(
 			'^mindmap/([^/]+)/([^/]+)/?$',
-			'index.php?post_type=mms_lesson&name=$matches[2]&mms_lesson_slug=$matches[2]&mms_course_slug=$matches[1]',
+			'index.php?mms_lesson=$matches[2]&mms_course_slug=$matches[1]&mms_lesson_slug=$matches[2]',
 			'top'
 		);
 		add_rewrite_rule(
 			'^mindmap/([^/]+)/?$',
-			'index.php?post_type=mms_course&name=$matches[1]&mms_course_slug=$matches[1]',
+			'index.php?mms_course=$matches[1]&mms_course_slug=$matches[1]',
 			'top'
 		);
 	}
