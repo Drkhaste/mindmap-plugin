@@ -369,6 +369,18 @@ class Mind_Map_Studio {
 												<button type="button" class="button button-secondary mms-btn-add-sibling"><span class="dashicons dashicons-plus" style="margin-top:4px;"></span></button>
 												<button type="button" class="button button-link-delete mms-btn-delete-node" style="color:#d63638;"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
 											</div>
+
+											<div class="node-custom-group" style="margin-right:20px; display:flex; gap:8px; border-right:1px solid #ccc; padding-right:15px; align-items:center;">
+												<div class="mms-color-palette" style="display:flex; gap:4px;">
+													<?php
+													$colors = array('#ffffff', '#f8d7da', '#d1ecf1', '#d4edda', '#fff3cd', '#e2e3e5', '#3b82f6');
+													foreach ($colors as $color) {
+														echo '<div class="mms-color-opt" data-color="' . $color . '" style="width:20px; height:20px; border-radius:4px; cursor:pointer; background:' . $color . '; border:1px solid #ddd;"></div>';
+													}
+													?>
+												</div>
+												<button type="button" class="button button-secondary mms-btn-toggle-dashed" title="<?php _e( 'خط‌چین', 'mind-map-studio' ); ?>"><span class="dashicons dashicons-ellipsis" style="margin-top:4px;"></span></button>
+											</div>
 										</div>
 										<div style="display:flex;gap:10px;">
 											<textarea name="mms_accordions[<?php echo $a_index; ?>][mindmaps][<?php echo $m_index; ?>][data]" class="mms-mindmap-data" style="width:30%; height:300px; font-family: monospace; direction: ltr;"><?php echo esc_textarea( $mindmap['data'] ); ?></textarea>
@@ -432,6 +444,18 @@ class Mind_Map_Studio {
 					<button type="button" class="button button-secondary" id="btn-add-child" title="<?php _e( 'افزودن نود فرزند', 'mind-map-studio' ); ?>"><span class="dashicons dashicons-plus-alt" style="margin-top:4px;"></span> <?php _e( 'فرزند', 'mind-map-studio' ); ?></button>
 					<button type="button" class="button button-secondary" id="btn-add-sibling" title="<?php _e( 'افزودن نود هم‌سطح', 'mind-map-studio' ); ?>"><span class="dashicons dashicons-plus" style="margin-top:4px;"></span> <?php _e( 'هم‌سطح', 'mind-map-studio' ); ?></button>
 					<button type="button" class="button button-link-delete" id="btn-delete-node" title="<?php _e( 'حذف نود', 'mind-map-studio' ); ?>" style="color:#d63638;"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+				</div>
+
+				<div class="node-custom-group" style="margin-right:20px; display:flex; gap:8px; border-right:1px solid #ccc; padding-right:15px; align-items:center;">
+					<div class="mms-color-palette" style="display:flex; gap:4px;">
+						<?php
+						$colors = array('#ffffff', '#f8d7da', '#d1ecf1', '#d4edda', '#fff3cd', '#e2e3e5', '#3b82f6');
+						foreach ($colors as $color) {
+							echo '<div class="mms-color-opt" data-color="' . $color . '" style="width:20px; height:20px; border-radius:4px; cursor:pointer; background:' . $color . '; border:1px solid #ddd;"></div>';
+						}
+						?>
+					</div>
+					<button type="button" class="button button-secondary" id="btn-toggle-dashed" title="<?php _e( 'خط‌چین', 'mind-map-studio' ); ?>"><span class="dashicons dashicons-ellipsis" style="margin-top:4px;"></span></button>
 				</div>
 
 				<span style="margin-right:auto;font-size:12px;color:#666;"><?php _e( 'Tab = فاصله‌گذاری، Shift+Tab = برگشت', 'mind-map-studio' ); ?></span>

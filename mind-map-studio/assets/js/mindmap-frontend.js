@@ -65,7 +65,7 @@
                     line_color: lineColor,
                     line_style: lineStyle
                 },
-                layout : { hspace: 40, vspace: 14, pspace: 10 }
+                layout : { hspace: 60, vspace: 20, pspace: 10 }
             });
             jm.show({
                 meta   : { name: 'Map', author: 'MMS', version: '1.0' },
@@ -208,7 +208,27 @@
             if (!t) continue;
             var ind = 0;
             while (ind < raw.length && (raw[ind] === ' ' || raw[ind] === '\t')) ind++;
-            var node = { id: 'n' + i, topic: t, indent: ind };
+
+            // Parse metadata: {c:#fff, d:1}
+            var topic = t;
+            var data = {};
+            var metaMatch = topic.match(/\{([^}]+)\}$/);
+            if (metaMatch) {
+                topic = topic.substring(0, metaMatch.index).trim();
+                var metaStr = metaMatch[1];
+                var parts = metaStr.split(',');
+                parts.forEach(function(p) {
+                    var kv = p.split(':');
+                    if (kv.length === 2) {
+                        var k = kv[0].trim();
+                        var v = kv[1].trim();
+                        if (k === 'c') data['background-color'] = v;
+                        if (k === 'd') data['dashed'] = (v === '1' || v === 'true');
+                    }
+                });
+            }
+
+            var node = { id: 'n' + i, topic: topic, indent: ind, data: data };
             if (!rootDone) {
                 node.isroot = true; rootDone = true; stack = [node]; nodes.push(node); continue;
             }
@@ -268,7 +288,7 @@
             mode      : 'full',
             editable  : false,
             view   : { engine: 'svg', line_width: lineWidth, line_color: lineColor, line_style: lineStyle },
-            layout : { hspace: 40, vspace: 14, pspace: 10 }
+            layout : { hspace: 60, vspace: 20, pspace: 10 }
         });
         jm.show({ meta: { name: 'Map' }, format: 'node_array', data: nodes });
         enablePinchToZoom(content, jm);
@@ -344,7 +364,18 @@
 
     function applyLineStyleOverrides() {
         if (typeof jsMind === 'undefined') return;
-        if (jsMind.graph_svg && !jsMind.graph_svg.prototype._bezier_to_orig) {
+
+        // SVG Engine
+        if (jsMind.graph_svg && !jsMind.graph_svg.prototype.draw_line_orig) {
+            jsMind.graph_svg.prototype.draw_line_orig = jsMind.graph_svg.prototype.draw_line;
+            jsMind.graph_svg.prototype.draw_line = function (pout, pin, offset, node) {
+                this.draw_line_orig(pout, pin, offset);
+                var lastLine = this.lines[this.lines.length - 1];
+                if (lastLine && node && node.data && node.data.dashed) {
+                    lastLine.setAttribute('stroke-dasharray', '5,5');
+                }
+            };
+
             jsMind.graph_svg.prototype._bezier_to_orig = jsMind.graph_svg.prototype._bezier_to;
             jsMind.graph_svg.prototype._bezier_to = function (path, x1, y1, x2, y2) {
                 var style = (this.opts.line_style || 'bezier');
@@ -353,6 +384,27 @@
                     var midX = x1 + (x2 - x1) * 0.5;
                     path.setAttribute('d', 'M' + x1 + ' ' + y1 + ' L' + midX + ' ' + y1 + ' L' + midX + ' ' + y2 + ' L' + x2 + ' ' + y2);
                 } else this._bezier_to_orig(path, x1, y1, x2, y2);
+            };
+        }
+
+        // Wrap show_lines to pass node to draw_line
+        if (jsMind.view_provider && !jsMind.view_provider.prototype.show_lines_orig) {
+            jsMind.view_provider.prototype.show_lines_orig = jsMind.view_provider.prototype.show_lines;
+            jsMind.view_provider.prototype.show_lines = function() {
+                this.clear_lines();
+                var nodes = this.jm.mind.nodes;
+                var node = null;
+                var pin = null;
+                var pout = null;
+                var _offset = this.get_view_offset();
+                for (var nodeid in nodes) {
+                    node = nodes[nodeid];
+                    if (!!node.isroot) { continue; }
+                    if (('visible' in node._data.layout) && !node._data.layout.visible) { continue; }
+                    pin = this.layout.get_node_point_in(node);
+                    pout = this.layout.get_node_point_out(node.parent);
+                    this.graph.draw_line(pout, pin, _offset, node);
+                }
             };
         }
     }

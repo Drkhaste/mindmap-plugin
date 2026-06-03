@@ -36,6 +36,12 @@
         $('#btn-add-child').on('click', addChild);
         $('#btn-add-sibling').on('click', addSibling);
         $('#btn-delete-node').on('click', deleteNode);
+
+        $('.mms-color-opt').on('click', function() {
+            var color = $(this).data('color');
+            applyNodeColor(color);
+        });
+        $('#btn-toggle-dashed').on('click', toggleDashed);
     }
 
     /* ── Tab key handler ── */
@@ -89,7 +95,26 @@
             var indent = 0;
             while (indent < raw.length && (raw[indent] === ' ' || raw[indent] === '\t')) indent++;
 
-            var node = { id: 'n' + i, topic: trimmed, indent: indent };
+            // Parse metadata: {c:#fff, d:1}
+            var topic = trimmed;
+            var data = {};
+            var metaMatch = topic.match(/\{([^}]+)\}$/);
+            if (metaMatch) {
+                topic = topic.substring(0, metaMatch.index).trim();
+                var metaStr = metaMatch[1];
+                var parts = metaStr.split(',');
+                parts.forEach(function(p) {
+                    var kv = p.split(':');
+                    if (kv.length === 2) {
+                        var k = kv[0].trim();
+                        var v = kv[1].trim();
+                        if (k === 'c') data['background-color'] = v;
+                        if (k === 'd') data['dashed'] = (v === '1' || v === 'true');
+                    }
+                });
+            }
+
+            var node = { id: 'n' + i, topic: topic, indent: indent, data: data };
 
             if (!rootDone) {
                 node.isroot = true;
@@ -147,7 +172,7 @@
                 line_color: '#cbd5e1',
                 line_style: settings.line_style || 'bezier'
             },
-            layout    : { hspace: 40, vspace: 14, pspace: 10 }
+            layout    : { hspace: 60, vspace: 20, pspace: 10 }
         };
 
         var mind = {
@@ -188,7 +213,20 @@
         var root = nodes.find(function(n) { return n.isroot; });
         if (!root) return '';
 
-        var text = root.topic + '\n';
+        function getNodeText(node) {
+            var text = node.topic;
+            var meta = [];
+            if (node.data) {
+                if (node.data['background-color']) meta.push('c:' + node.data['background-color']);
+                if (node.data['dashed']) meta.push('d:1');
+            }
+            if (meta.length > 0) {
+                text += ' {' + meta.join(',') + '}';
+            }
+            return text;
+        }
+
+        var text = getNodeText(root) + '\n';
 
         function getChildren(parentId) {
             return nodes.filter(function(n) { return n.parentid === parentId; });
@@ -198,7 +236,7 @@
             var children = getChildren(parentId);
             children.sort(function(a, b) { return (a.index || 0) - (b.index || 0); });
             children.forEach(function(child) {
-                text += '  '.repeat(level) + child.topic + '\n';
+                text += '  '.repeat(level) + getNodeText(child) + '\n';
                 walk(child.id, level + 1);
             });
         }
@@ -251,6 +289,41 @@
         }
     }
 
+    function applyNodeColor(color) {
+        if (!jm) return;
+        var selected_node = jm.get_selected_node();
+        if (!selected_node) return;
+
+        if (!selected_node.data) selected_node.data = {};
+        selected_node.data['background-color'] = color;
+
+        // Update visual
+        var el = document.querySelector('jmnode[nodeid="'+selected_node.id+'"]');
+        if (el) {
+            el.style.backgroundColor = color;
+            // Also ensure it stays when unselected
+            if (jm.view && jm.view.reset_node_custom_style) {
+                jm.view.reset_node_custom_style(selected_node);
+            }
+        }
+
+        updateTextareaFromMap();
+    }
+
+    function toggleDashed() {
+        if (!jm) return;
+        var selected_node = jm.get_selected_node();
+        if (!selected_node || selected_node.isroot) return;
+
+        if (!selected_node.data) selected_node.data = {};
+        selected_node.data.dashed = !selected_node.data.dashed;
+
+        if (jm.view && jm.view.show_lines) {
+            jm.view.show_lines();
+        }
+        updateTextareaFromMap();
+    }
+
     /* ── watermark ── */
     function updateWatermark() {
         if (typeof mindMapStudioSettings === 'undefined') return;
@@ -298,7 +371,16 @@
         if (typeof jsMind === 'undefined') return;
 
         // SVG Engine
-        if (jsMind.graph_svg && !jsMind.graph_svg.prototype._bezier_to_orig) {
+        if (jsMind.graph_svg && !jsMind.graph_svg.prototype.draw_line_orig) {
+            jsMind.graph_svg.prototype.draw_line_orig = jsMind.graph_svg.prototype.draw_line;
+            jsMind.graph_svg.prototype.draw_line = function (pout, pin, offset, node) {
+                this.draw_line_orig(pout, pin, offset);
+                var lastLine = this.lines[this.lines.length - 1];
+                if (lastLine && node && node.data && node.data.dashed) {
+                    lastLine.setAttribute('stroke-dasharray', '5,5');
+                }
+            };
+
             jsMind.graph_svg.prototype._bezier_to_orig = jsMind.graph_svg.prototype._bezier_to;
             jsMind.graph_svg.prototype._bezier_to = function (path, x1, y1, x2, y2) {
                 var style = (this.opts.line_style || 'bezier');
@@ -314,7 +396,20 @@
         }
 
         // Canvas Engine
-        if (jsMind.graph_canvas && !jsMind.graph_canvas.prototype._bezier_to_orig) {
+        if (jsMind.graph_canvas && !jsMind.graph_canvas.prototype.draw_line_orig) {
+            jsMind.graph_canvas.prototype.draw_line_orig = jsMind.graph_canvas.prototype.draw_line;
+            jsMind.graph_canvas.prototype.draw_line = function (pout, pin, offset, node) {
+                var ctx = this.canvas_ctx;
+                ctx.save();
+                if (node && node.data && node.data.dashed) {
+                    ctx.setLineDash([5, 5]);
+                } else {
+                    ctx.setLineDash([]);
+                }
+                this.draw_line_orig(pout, pin, offset);
+                ctx.restore();
+            };
+
             jsMind.graph_canvas.prototype._bezier_to_orig = jsMind.graph_canvas.prototype._bezier_to;
             jsMind.graph_canvas.prototype._bezier_to = function (ctx, x1, y1, x2, y2) {
                 var style = (this.opts.line_style || 'bezier');
@@ -331,6 +426,27 @@
                     ctx.bezierCurveTo(x1 + (x2 - x1) * 2 / 3, y1, x1, y2, x2, y2);
                 }
                 ctx.stroke();
+            };
+        }
+
+        // Wrap show_lines to pass node to draw_line
+        if (jsMind.view_provider && !jsMind.view_provider.prototype.show_lines_orig) {
+            jsMind.view_provider.prototype.show_lines_orig = jsMind.view_provider.prototype.show_lines;
+            jsMind.view_provider.prototype.show_lines = function() {
+                this.clear_lines();
+                var nodes = this.jm.mind.nodes;
+                var node = null;
+                var pin = null;
+                var pout = null;
+                var _offset = this.get_view_offset();
+                for (var nodeid in nodes) {
+                    node = nodes[nodeid];
+                    if (!!node.isroot) { continue; }
+                    if (('visible' in node._data.layout) && !node._data.layout.visible) { continue; }
+                    pin = this.layout.get_node_point_in(node);
+                    pout = this.layout.get_node_point_out(node.parent);
+                    this.graph.draw_line(pout, pin, _offset, node);
+                }
             };
         }
     }
