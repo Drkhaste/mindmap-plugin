@@ -78,6 +78,17 @@
             updateTextareaFromMap(containerId);
         });
 
+        $(document).on('click', '.mms-color-opt', function() {
+            var containerId = $(this).closest('.mms-editor-wrapper').data('id');
+            var color = $(this).data('color');
+            applyNodeColor(containerId, color);
+        });
+
+        $(document).on('click', '.mms-btn-toggle-dashed', function() {
+            var containerId = $(this).closest('.mms-editor-wrapper').data('id');
+            toggleDashed(containerId);
+        });
+
         // Add Accordion
         $('#mms-add-accordion').on('click', function() {
             var index = $('.mms-accordion-item').length;
@@ -117,6 +128,18 @@
                                 <button type="button" class="button button-secondary mms-btn-add-child"><span class="dashicons dashicons-plus-alt" style="margin-top:4px;"></span></button>
                                 <button type="button" class="button button-secondary mms-btn-add-sibling"><span class="dashicons dashicons-plus" style="margin-top:4px;"></span></button>
                                 <button type="button" class="button button-link-delete mms-btn-delete-node" style="color:#d63638;"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+                            </div>
+                            <div class="node-custom-group" style="margin-right:20px; display:flex; gap:8px; border-right:1px solid #ccc; padding-right:15px; align-items:center;">
+                                <div class="mms-color-palette" style="display:flex; gap:4px;">
+                                    <div class="mms-color-opt" data-color="#ffffff" style="width:20px; height:20px; border-radius:4px; cursor:pointer; background:#ffffff; border:1px solid #ddd;"></div>
+                                    <div class="mms-color-opt" data-color="#f8d7da" style="width:20px; height:20px; border-radius:4px; cursor:pointer; background:#f8d7da; border:1px solid #ddd;"></div>
+                                    <div class="mms-color-opt" data-color="#d1ecf1" style="width:20px; height:20px; border-radius:4px; cursor:pointer; background:#d1ecf1; border:1px solid #ddd;"></div>
+                                    <div class="mms-color-opt" data-color="#d4edda" style="width:20px; height:20px; border-radius:4px; cursor:pointer; background:#d4edda; border:1px solid #ddd;"></div>
+                                    <div class="mms-color-opt" data-color="#fff3cd" style="width:20px; height:20px; border-radius:4px; cursor:pointer; background:#fff3cd; border:1px solid #ddd;"></div>
+                                    <div class="mms-color-opt" data-color="#e2e3e5" style="width:20px; height:20px; border-radius:4px; cursor:pointer; background:#e2e3e5; border:1px solid #ddd;"></div>
+                                    <div class="mms-color-opt" data-color="#3b82f6" style="width:20px; height:20px; border-radius:4px; cursor:pointer; background:#3b82f6; border:1px solid #ddd;"></div>
+                                </div>
+                                <button type="button" class="button button-secondary mms-btn-toggle-dashed" title="خط‌چین"><span class="dashicons dashicons-ellipsis" style="margin-top:4px;"></span></button>
                             </div>
                         </div>
                         <div style="display:flex;gap:10px;">
@@ -164,8 +187,10 @@
             view      : {
                 engine: 'svg',
                 line_width: settings.line_width || 2,
+                line_color: '#cbd5e1',
                 line_style: settings.line_style || 'bezier'
-            }
+            },
+            layout    : { hspace: 60, vspace: 20, pspace: 10 }
         };
 
         var mind = {
@@ -177,6 +202,8 @@
         var jm = new jsMind(opts);
         jm.show(mind);
         jmInstances[containerId] = jm;
+
+        applyLineStyleOverrides();
 
         jm.add_event_listener(function(type, data) {
             if (type === 3 && !isUpdating) {
@@ -200,7 +227,26 @@
             var indent = 0;
             while (indent < raw.length && (raw[indent] === ' ' || raw[indent] === '\t')) indent++;
 
-            var node = { id: 'n' + i, topic: trimmed, indent: indent };
+            // Parse metadata: {c:#fff, d:1}
+            var topic = trimmed;
+            var data = {};
+            var metaMatch = topic.match(/\{([^}]+)\}$/);
+            if (metaMatch) {
+                topic = topic.substring(0, metaMatch.index).trim();
+                var metaStr = metaMatch[1];
+                var parts = metaStr.split(',');
+                parts.forEach(function(p) {
+                    var kv = p.split(':');
+                    if (kv.length === 2) {
+                        var k = kv[0].trim();
+                        var v = kv[1].trim();
+                        if (k === 'c') data['background-color'] = v;
+                        if (k === 'd') data['dashed'] = (v === '1' || v === 'true');
+                    }
+                });
+            }
+
+            var node = { id: 'n' + i, topic: topic, indent: indent, data: data };
 
             if (!rootDone) {
                 node.isroot = true;
@@ -239,16 +285,149 @@
         if (!nodes || nodes.length === 0) return '';
         var root = nodes.find(function(n) { return n.isroot; });
         if (!root) return '';
-        var text = root.topic + '\n';
+
+        function getNodeText(node) {
+            var text = node.topic;
+            var meta = [];
+            if (node.data) {
+                if (node.data['background-color']) meta.push('c:' + node.data['background-color']);
+                if (node.data['dashed']) meta.push('d:1');
+            }
+            if (meta.length > 0) {
+                text += ' {' + meta.join(',') + '}';
+            }
+            return text;
+        }
+
+        var text = getNodeText(root) + '\n';
         function walk(parentId, level) {
             var children = nodes.filter(function(n) { return n.parentid === parentId; });
             children.forEach(function(child) {
-                text += '  '.repeat(level) + child.topic + '\n';
+                text += '  '.repeat(level) + getNodeText(child) + '\n';
                 walk(child.id, level + 1);
             });
         }
         walk(root.id, 1);
         return text.trim();
+    }
+
+    function applyNodeColor(containerId, color) {
+        var jm = jmInstances[containerId];
+        if (!jm) return;
+        var selected_node = jm.get_selected_node();
+        if (!selected_node) return;
+
+        if (!selected_node.data) selected_node.data = {};
+        selected_node.data['background-color'] = color;
+
+        var el = document.querySelector('#' + containerId + ' jmnode[nodeid="'+selected_node.id+'"]');
+        if (el) {
+            el.style.backgroundColor = color;
+            if (jm.view && jm.view.reset_node_custom_style) {
+                jm.view.reset_node_custom_style(selected_node);
+            }
+        }
+
+        updateTextareaFromMap(containerId);
+    }
+
+    function toggleDashed(containerId) {
+        var jm = jmInstances[containerId];
+        if (!jm) return;
+        var selected_node = jm.get_selected_node();
+        if (!selected_node || selected_node.isroot) return;
+
+        if (!selected_node.data) selected_node.data = {};
+        selected_node.data.dashed = !selected_node.data.dashed;
+
+        if (jm.view && jm.view.show_lines) {
+            jm.view.show_lines();
+        }
+        updateTextareaFromMap(containerId);
+    }
+
+    function applyLineStyleOverrides() {
+        if (typeof jsMind === 'undefined') return;
+
+        // SVG Engine
+        if (jsMind.graph_svg && !jsMind.graph_svg.prototype.draw_line_orig) {
+            jsMind.graph_svg.prototype.draw_line_orig = jsMind.graph_svg.prototype.draw_line;
+            jsMind.graph_svg.prototype.draw_line = function (pout, pin, offset, node) {
+                this.draw_line_orig(pout, pin, offset);
+                var lastLine = this.lines[this.lines.length - 1];
+                if (lastLine && node && node.data && node.data.dashed) {
+                    lastLine.setAttribute('stroke-dasharray', '5,5');
+                }
+            };
+
+            jsMind.graph_svg.prototype._bezier_to_orig = jsMind.graph_svg.prototype._bezier_to;
+            jsMind.graph_svg.prototype._bezier_to = function (path, x1, y1, x2, y2) {
+                var style = (this.opts.line_style || 'bezier');
+                if (style === 'straight') {
+                    path.setAttribute('d', 'M' + x1 + ' ' + y1 + ' L' + x2 + ' ' + y2);
+                } else if (style === 'rounded') {
+                    var midX = x1 + (x2 - x1) * 0.5;
+                    path.setAttribute('d', 'M' + x1 + ' ' + y1 + ' L' + midX + ' ' + y1 + ' L' + midX + ' ' + y2 + ' L' + x2 + ' ' + y2);
+                } else {
+                    this._bezier_to_orig(path, x1, y1, x2, y2);
+                }
+            };
+        }
+
+        // Canvas Engine
+        if (jsMind.graph_canvas && !jsMind.graph_canvas.prototype.draw_line_orig) {
+            jsMind.graph_canvas.prototype.draw_line_orig = jsMind.graph_canvas.prototype.draw_line;
+            jsMind.graph_canvas.prototype.draw_line = function (pout, pin, offset, node) {
+                var ctx = this.canvas_ctx;
+                ctx.save();
+                if (node && node.data && node.data.dashed) {
+                    ctx.setLineDash([5, 5]);
+                } else {
+                    ctx.setLineDash([]);
+                }
+                this.draw_line_orig(pout, pin, offset);
+                ctx.restore();
+            };
+
+            jsMind.graph_canvas.prototype._bezier_to_orig = jsMind.graph_canvas.prototype._bezier_to;
+            jsMind.graph_canvas.prototype._bezier_to = function (ctx, x1, y1, x2, y2) {
+                var style = (this.opts.line_style || 'bezier');
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                if (style === 'straight') {
+                    ctx.lineTo(x2, y2);
+                } else if (style === 'rounded') {
+                    var midX = x1 + (x2 - x1) * 0.5;
+                    ctx.lineTo(midX, y1);
+                    ctx.lineTo(midX, y2);
+                    ctx.lineTo(x2, y2);
+                } else {
+                    ctx.bezierCurveTo(x1 + (x2 - x1) * 2 / 3, y1, x1, y2, x2, y2);
+                }
+                ctx.stroke();
+            };
+        }
+
+        // Wrap show_lines to pass node to draw_line
+        if (jsMind.view_provider && !jsMind.view_provider.prototype.show_lines_orig) {
+            jsMind.view_provider.prototype.show_lines_orig = jsMind.view_provider.prototype.show_lines;
+            jsMind.view_provider.prototype.show_lines = function() {
+                this.clear_lines();
+                var nodes = this.jm.mind.nodes;
+                var node = null;
+                var pin = null;
+                var pout = null;
+                var _offset = this.get_view_offset();
+                for (var nodeid in nodes) {
+                    node = nodes[nodeid];
+                    if (!!node.isroot) { continue; }
+                    if (('visible' in node._data.layout) && !node._data.layout.visible) { continue; }
+                    pin = this.layout.get_node_point_in(node);
+                    pout = this.layout.get_node_point_out(node.parent);
+                    this.graph.draw_line(pout, pin, _offset, node);
+                }
+            };
+        }
     }
 
     $(document).ready(init);
