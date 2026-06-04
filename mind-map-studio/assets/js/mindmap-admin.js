@@ -5,11 +5,34 @@
     var mapDirection = 'both';
     var isUpdating   = false;
 
+    // Track per-node custom styles: { nodeId: { color, dashed } }
+    var nodeStyles   = {};
+
+    // Color palette
+    var NODE_COLORS = [
+        { key: 'default', label: 'پیش‌فرض', bg: '#ffffff', border: '#94a3b8', text: '#1e293b', swatch: 'linear-gradient(135deg,#f8fafc,#e2e8f0)' },
+        { key: 'teal',    label: 'فیروزه‌ای',  bg: '#ccfbf1', border: '#2dd4bf', text: '#134e4a', swatch: 'linear-gradient(135deg,#ccfbf1,#99f6e4)' },
+        { key: 'blue',    label: 'آبی',       bg: '#dbeafe', border: '#60a5fa', text: '#1e3a8a', swatch: 'linear-gradient(135deg,#dbeafe,#bfdbfe)' },
+        { key: 'purple',  label: 'بنفش',      bg: '#ede9fe', border: '#a78bfa', text: '#4c1d95', swatch: 'linear-gradient(135deg,#ede9fe,#ddd6fe)' },
+        { key: 'pink',    label: 'صورتی',     bg: '#fce7f3', border: '#f472b6', text: '#831843', swatch: 'linear-gradient(135deg,#fce7f3,#fbcfe8)' },
+        { key: 'red',     label: 'قرمز',      bg: '#fee2e2', border: '#f87171', text: '#7f1d1d', swatch: 'linear-gradient(135deg,#fee2e2,#fecaca)' },
+        { key: 'orange',  label: 'نارنجی',    bg: '#ffedd5', border: '#fb923c', text: '#7c2d12', swatch: 'linear-gradient(135deg,#ffedd5,#fed7aa)' },
+        { key: 'yellow',  label: 'زرد',       bg: '#fef9c3', border: '#facc15', text: '#713f12', swatch: 'linear-gradient(135deg,#fef9c3,#fef08a)' },
+        { key: 'green',   label: 'سبز',       bg: '#dcfce7', border: '#4ade80', text: '#14532d', swatch: 'linear-gradient(135deg,#dcfce7,#bbf7d0)' },
+        { key: 'dark',    label: 'تیره',      bg: '#1e293b', border: '#475569', text: '#f1f5f9', swatch: 'linear-gradient(135deg,#334155,#1e293b)' },
+    ];
+
     /* ── init ── */
     function init() {
         if (!$('#mind_map_data').length) return;
 
         mapDirection = $('#mind_map_layout').val() || 'both';
+
+        // Load saved node styles
+        var savedStyles = $('#mind_map_node_styles').val();
+        if (savedStyles) {
+            try { nodeStyles = JSON.parse(savedStyles); } catch(e) {}
+        }
 
         setTimeout(function () {
             generateMindMap();
@@ -36,6 +59,13 @@
         $('#btn-add-child').on('click', addChild);
         $('#btn-add-sibling').on('click', addSibling);
         $('#btn-delete-node').on('click', deleteNode);
+
+        // Close toolbar on outside click
+        $(document).on('click.mmsToolbar', function(e) {
+            if (!$(e.target).closest('.mms-node-toolbar').length && !$(e.target).closest('jmnode').length) {
+                hideNodeToolbar();
+            }
+        });
     }
 
     /* ── Tab key handler ── */
@@ -126,7 +156,7 @@
         if (!text || !text.trim()) return;
 
         if (typeof jsMind === 'undefined') {
-            console.error('[MindMapStudio] jsMind yüklenmedi');
+            console.error('[MindMapStudio] jsMind not loaded');
             return;
         }
 
@@ -142,12 +172,12 @@
             mode      : 'full',
             editable  : true,
             view      : {
-                engine: 'svg',
-                line_width: settings.line_width || 2,
-                line_color: '#cbd5e1',
-                line_style: settings.line_style || 'bezier'
+                engine    : 'svg',
+                line_width : settings.line_width || 2,
+                line_color : '#94a3b8',
+                line_style : settings.line_style || 'bezier'
             },
-            layout    : { hspace: 40, vspace: 14, pspace: 10 }
+            layout    : { hspace: 46, vspace: 16, pspace: 12 }
         };
 
         var mind = {
@@ -160,17 +190,263 @@
             jm = new jsMind(opts);
             jm.show(mind);
 
-            // Re-apply overrides in case jsMind was re-instantiated
             applyLineStyleOverrides();
+
+            // Apply saved node styles after render
+            setTimeout(function() {
+                applyAllNodeStyles();
+                applyAllLineStyles();
+                attachNodeClickHandlers();
+            }, 150);
 
             jm.add_event_listener(function(type, data) {
                 if (type === 3 && !isUpdating) {
                     updateTextareaFromMap();
                 }
+                // Re-attach handlers after edit events
+                if (type === 3) {
+                    setTimeout(function() {
+                        applyAllNodeStyles();
+                        applyAllLineStyles();
+                        attachNodeClickHandlers();
+                    }, 200);
+                }
+                // On select, show toolbar
+                if (type === 4 && data && data.node) {
+                    setTimeout(function() {
+                        showNodeToolbar(data.node);
+                    }, 50);
+                }
             });
+
         } catch (e) {
             console.error('[MindMapStudio] jsMind error:', e);
         }
+    }
+
+    /* ── Attach click handlers to nodes ── */
+    function attachNodeClickHandlers() {
+        $('#jsmind_container jmnode').off('click.mmsStyle').on('click.mmsStyle', function(e) {
+            var nodeId = $(this).attr('nodeid');
+            if (nodeId) {
+                showNodeToolbar(nodeId);
+            }
+        });
+    }
+
+    /* ══════════════════════════════════════════
+       NODE TOOLBAR
+    ══════════════════════════════════════════ */
+    function showNodeToolbar(nodeId) {
+        if (!nodeId || !jm) return;
+        var node = jm.get_node(nodeId);
+        if (!node) return;
+
+        hideNodeToolbar();
+
+        var style = nodeStyles[nodeId] || { color: 'default', dashed: false };
+
+        // Build toolbar HTML
+        var swatchesHtml = NODE_COLORS.map(function(c) {
+            var isActive = (c.key === (style.color || 'default'));
+            return '<div class="mms-color-swatch ' + (isActive ? 'active' : '') + '" ' +
+                   'data-color="' + c.key + '" title="' + c.label + '" ' +
+                   'style="background:' + c.swatch + '; border-color:' + c.border + ';"></div>';
+        }).join('');
+
+        var isDashed = style.dashed === true || style.dashed === 'dashed';
+        var isDotted = style.dashed === 'dotted';
+
+        var html = '<div class="mms-node-toolbar" id="mms-node-toolbar" data-nodeid="' + nodeId + '">' +
+            '<div class="mms-node-toolbar-title">رنگ نود</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;">' +
+            swatchesHtml +
+            '<div class="mms-node-toolbar-sep"></div>' +
+            '<div class="mms-toolbar-icon-btn ' + (isDashed ? 'active' : '') + '" id="mms-btn-dashed" title="خط چین">╌</div>' +
+            '<div class="mms-toolbar-icon-btn ' + (isDotted ? 'active' : '') + '" id="mms-btn-dotted" title="نقطه‌چین">···</div>' +
+            '<div class="mms-toolbar-icon-btn" id="mms-btn-solid" title="خط ساده">—</div>' +
+            '<div class="mms-node-toolbar-sep"></div>' +
+            '<div class="mms-toolbar-icon-btn" id="mms-btn-delete-node-tb" title="حذف نود" style="color:#f87171;">✕</div>' +
+            '</div>' +
+            '</div>';
+
+        $('body').append(html);
+
+        // Position near the selected node element
+        var $nodeEl = $('#jsmind_container jmnode[nodeid="' + nodeId + '"]');
+        positionToolbar($nodeEl);
+
+        // Bind events
+        $('#mms-node-toolbar .mms-color-swatch').on('click', function(e) {
+            e.stopPropagation();
+            var colorKey = $(this).data('color');
+            applyNodeColor(nodeId, colorKey);
+            $('#mms-node-toolbar .mms-color-swatch').removeClass('active');
+            $(this).addClass('active');
+        });
+
+        $('#mms-btn-dashed').on('click', function(e) {
+            e.stopPropagation();
+            var current = nodeStyles[nodeId] && nodeStyles[nodeId].dashed;
+            applyNodeLineDash(nodeId, current === 'dashed' ? false : 'dashed');
+            updateToolbarLineButtons(nodeId);
+        });
+
+        $('#mms-btn-dotted').on('click', function(e) {
+            e.stopPropagation();
+            var current = nodeStyles[nodeId] && nodeStyles[nodeId].dashed;
+            applyNodeLineDash(nodeId, current === 'dotted' ? false : 'dotted');
+            updateToolbarLineButtons(nodeId);
+        });
+
+        $('#mms-btn-solid').on('click', function(e) {
+            e.stopPropagation();
+            applyNodeLineDash(nodeId, false);
+            updateToolbarLineButtons(nodeId);
+        });
+
+        $('#mms-btn-delete-node-tb').on('click', function(e) {
+            e.stopPropagation();
+            deleteNode();
+            hideNodeToolbar();
+        });
+    }
+
+    function positionToolbar($nodeEl) {
+        var $toolbar = $('#mms-node-toolbar');
+        if (!$toolbar.length) return;
+
+        var containerRect = document.getElementById('jsmind_container').getBoundingClientRect();
+
+        if ($nodeEl && $nodeEl.length) {
+            var nodeRect = $nodeEl[0].getBoundingClientRect();
+            var top  = nodeRect.bottom + 8;
+            var left = nodeRect.left;
+
+            // Clamp to viewport
+            var tbW = $toolbar.outerWidth() || 280;
+            if (left + tbW > window.innerWidth - 10) {
+                left = window.innerWidth - tbW - 10;
+            }
+            if (top + 80 > window.innerHeight) {
+                top = nodeRect.top - 80;
+            }
+
+            $toolbar.css({ top: top + 'px', left: left + 'px' });
+        } else {
+            $toolbar.css({ top: '50%', left: '50%', transform: 'translate(-50%,-50%)' });
+        }
+    }
+
+    function updateToolbarLineButtons(nodeId) {
+        var style = nodeStyles[nodeId] || {};
+        $('#mms-btn-dashed').toggleClass('active', style.dashed === 'dashed');
+        $('#mms-btn-dotted').toggleClass('active', style.dashed === 'dotted');
+    }
+
+    function hideNodeToolbar() {
+        $('#mms-node-toolbar').remove();
+    }
+
+    /* ── Apply color to a node ── */
+    function applyNodeColor(nodeId, colorKey) {
+        if (!nodeStyles[nodeId]) nodeStyles[nodeId] = {};
+        nodeStyles[nodeId].color = colorKey;
+        saveNodeStyles();
+
+        var colorData = NODE_COLORS.find(function(c){ return c.key === colorKey; });
+        var $el = $('#jsmind_container jmnode[nodeid="' + nodeId + '"]');
+
+        if (colorKey === 'default' || !colorData) {
+            $el.removeAttr('data-node-color');
+            $el.css({ 'background': '', 'color': '', 'border-color': '' });
+        } else {
+            $el.attr('data-node-color', colorKey);
+            $el.css({
+                'background': colorData.swatch,
+                'color': colorData.text,
+                'border-color': colorData.border
+            });
+        }
+    }
+
+    /* ── Apply dashed line to a node's connecting line ── */
+    function applyNodeLineDash(nodeId, dashType) {
+        if (!nodeStyles[nodeId]) nodeStyles[nodeId] = {};
+        nodeStyles[nodeId].dashed = dashType;
+        saveNodeStyles();
+        applyAllLineStyles();
+    }
+
+    /* ── Apply all saved node styles to the DOM ── */
+    function applyAllNodeStyles() {
+        Object.keys(nodeStyles).forEach(function(nodeId) {
+            var style = nodeStyles[nodeId];
+            if (!style || !style.color) return;
+            applyNodeColor(nodeId, style.color);
+        });
+    }
+
+    /* ── Apply all dashed-line styles to SVG paths ── */
+    function applyAllLineStyles() {
+        var $svg = $('#jsmind_container svg.jsmind');
+        if (!$svg.length) return;
+
+        // Reset all paths first
+        $svg.find('path').removeClass('mms-dashed mms-dotted').css({
+            'stroke-dasharray': '',
+            'opacity': ''
+        });
+
+        Object.keys(nodeStyles).forEach(function(nodeId) {
+            var style = nodeStyles[nodeId];
+            if (!style || !style.dashed) return;
+
+            // Find the SVG path that connects to this node
+            var $path = findPathForNode(nodeId, $svg);
+            if ($path && $path.length) {
+                $path.removeClass('mms-dashed mms-dotted');
+                if (style.dashed === 'dashed') {
+                    $path.css('stroke-dasharray', '7 4');
+                } else if (style.dashed === 'dotted') {
+                    $path.css('stroke-dasharray', '2 5');
+                }
+            }
+        });
+    }
+
+    /* ── Find the SVG path corresponding to a node ── */
+    function findPathForNode(nodeId, $svg) {
+        if (!jm) return null;
+        var node = jm.get_node(nodeId);
+        if (!node || node.isroot) return null;
+
+        var nodeEl = document.querySelector('#jsmind_container jmnode[nodeid="' + nodeId + '"]');
+        if (!nodeEl) return null;
+
+        // jsMind draws lines in order — find which path index corresponds to this node
+        var allNodes = Object.values(jm.mind.nodes);
+        var nonRootNodes = allNodes.filter(function(n){ return !n.isroot; }).sort(function(a,b){ return a.index - b.index; });
+
+        var $paths = $svg.find('path');
+        var idx = -1;
+        for (var i = 0; i < nonRootNodes.length; i++) {
+            if (nonRootNodes[i].id === nodeId) { idx = i; break; }
+        }
+
+        if (idx >= 0 && idx < $paths.length) {
+            return $paths.eq(idx);
+        }
+        return null;
+    }
+
+    /* ── Save styles to hidden field ── */
+    function saveNodeStyles() {
+        var $field = $('#mind_map_node_styles');
+        if (!$field.length) {
+            $('<input type="hidden" name="mind_map_node_styles" id="mind_map_node_styles">').appendTo('#post');
+        }
+        $('#mind_map_node_styles').val(JSON.stringify(nodeStyles));
     }
 
     /* ── Bi-directional Sync ── */
@@ -179,7 +455,7 @@
         var mind_data = jm.get_data('node_array');
         var text = serializeToText(mind_data.data);
         isUpdating = true;
-        $('#mind_map_data').val(text).trigger('input'); // Use input event
+        $('#mind_map_data').val(text).trigger('input');
         isUpdating = false;
     }
 
@@ -246,8 +522,11 @@
             return;
         }
         if (confirm('آیا از حذف این نود و تمام فرزندان آن مطمئن هستید؟')) {
+            // Clean up stored styles for this node
+            delete nodeStyles[selected_node.id];
+            saveNodeStyles();
             jm.remove_node(selected_node);
-            updateTextareaFromMap(); // Ensure sync after deletion
+            updateTextareaFromMap();
         }
     }
 
@@ -273,9 +552,9 @@
             wm.text + '</text></svg>';
 
         $ca.css({
-            'background-image': 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) + '")',
-            'background-repeat': 'repeat',
-            'background-size': spacing + 'px ' + height + 'px'
+            'background-image'  : 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) + '")',
+            'background-repeat' : 'repeat',
+            'background-size'   : spacing + 'px ' + height + 'px'
         });
     }
 
@@ -293,11 +572,10 @@
         );
     }
 
-    /* ── Line Style Overrides ── */
+    /* ── Line Style Overrides (bezier / straight / rounded) ── */
     function applyLineStyleOverrides() {
         if (typeof jsMind === 'undefined') return;
 
-        // SVG Engine
         if (jsMind.graph_svg && !jsMind.graph_svg.prototype._bezier_to_orig) {
             jsMind.graph_svg.prototype._bezier_to_orig = jsMind.graph_svg.prototype._bezier_to;
             jsMind.graph_svg.prototype._bezier_to = function (path, x1, y1, x2, y2) {
@@ -310,10 +588,12 @@
                 } else {
                     this._bezier_to_orig(path, x1, y1, x2, y2);
                 }
+                // Make lines more beautiful: round caps
+                path.setAttribute('stroke-linecap', 'round');
+                path.setAttribute('stroke-linejoin', 'round');
             };
         }
 
-        // Canvas Engine
         if (jsMind.graph_canvas && !jsMind.graph_canvas.prototype._bezier_to_orig) {
             jsMind.graph_canvas.prototype._bezier_to_orig = jsMind.graph_canvas.prototype._bezier_to;
             jsMind.graph_canvas.prototype._bezier_to = function (ctx, x1, y1, x2, y2) {
@@ -330,6 +610,7 @@
                 } else {
                     ctx.bezierCurveTo(x1 + (x2 - x1) * 2 / 3, y1, x1, y2, x2, y2);
                 }
+                ctx.lineCap = 'round';
                 ctx.stroke();
             };
         }
