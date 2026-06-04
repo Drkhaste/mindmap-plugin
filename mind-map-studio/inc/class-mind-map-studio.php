@@ -1,7 +1,7 @@
 <?php
 /**
  * Mind Map Studio Main Class.
- * Enhanced with node color/dash style persistence.
+ * Enhanced with node color/dash style persistence and appearance settings.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -138,14 +138,12 @@ class Mind_Map_Studio {
 
 	/* ── SETTINGS REGISTRATION ── */
 	public static function register_settings() {
-		// Appearance
 		register_setting( 'mind_map_settings_group', 'mind_map_theme_light',        array( 'default' => 'primary' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_theme_dark',         array( 'default' => 'primary' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_line_color',         array( 'default' => '#94a3b8' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_line_style',         array( 'default' => 'bezier' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_line_width',         array( 'default' => 2 ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_node_border_radius', array( 'default' => 12 ) );
-		// Watermark
 		register_setting( 'mind_map_settings_group', 'mind_map_watermark_text',     array( 'default' => '' ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_watermark_size',     array( 'default' => 14 ) );
 		register_setting( 'mind_map_settings_group', 'mind_map_watermark_color',    array( 'default' => '#94a3b8' ) );
@@ -220,11 +218,8 @@ class Mind_Map_Studio {
 			<form method="post" action="options.php">
 				<?php settings_fields( 'mind_map_settings_group' ); ?>
 				<div class="mms-settings-wrap">
-
-					<!-- ── ظاهر نودها ── -->
 					<div class="mms-settings-card">
 						<h2><span>🎨</span><?php _e( 'ظاهر نودها', 'mind-map-studio' ); ?></h2>
-
 						<div class="mms-form-row">
 							<label><?php _e( 'تم روشن', 'mind-map-studio' ); ?></label>
 							<select name="mind_map_theme_light">
@@ -233,7 +228,6 @@ class Mind_Map_Studio {
 								<?php endforeach; ?>
 							</select>
 						</div>
-
 						<div class="mms-form-row">
 							<label><?php _e( 'تم تاریک', 'mind-map-studio' ); ?></label>
 							<select name="mind_map_theme_dark">
@@ -242,7 +236,6 @@ class Mind_Map_Studio {
 								<?php endforeach; ?>
 							</select>
 						</div>
-
 						<div class="mms-form-row">
 							<label><?php _e( 'شعاع گوشه نود (px)', 'mind-map-studio' ); ?></label>
 							<input type="number" name="mind_map_node_border_radius" value="<?php echo esc_attr( $border_radius ); ?>" min="0" max="40" step="1">
@@ -250,10 +243,8 @@ class Mind_Map_Studio {
 						</div>
 					</div>
 
-					<!-- ── خطوط اتصال ── -->
 					<div class="mms-settings-card">
 						<h2><span>〰️</span><?php _e( 'خطوط اتصال', 'mind-map-studio' ); ?></h2>
-
 						<div class="mms-form-row">
 							<label><?php _e( 'رنگ خطوط', 'mind-map-studio' ); ?></label>
 							<div class="mms-color-row">
@@ -265,7 +256,6 @@ class Mind_Map_Studio {
 									maxlength="7" placeholder="#94a3b8">
 							</div>
 						</div>
-
 						<div class="mms-form-row">
 							<label><?php _e( 'سبک خط', 'mind-map-studio' ); ?></label>
 							<select name="mind_map_line_style">
@@ -274,7 +264,6 @@ class Mind_Map_Studio {
 								<?php endforeach; ?>
 							</select>
 						</div>
-
 						<div class="mms-form-row">
 							<label><?php _e( 'ضخامت خط (px)', 'mind-map-studio' ); ?></label>
 							<input type="number" name="mind_map_line_width" value="<?php echo esc_attr( $line_width ); ?>" min="1" max="8" step="0.5">
@@ -282,7 +271,6 @@ class Mind_Map_Studio {
 						</div>
 					</div>
 
-					<!-- ── واترمارک ── -->
 					<div class="mms-settings-card" style="grid-column:1/-1;">
 						<h2><span>💧</span><?php _e( 'واترمارک', 'mind-map-studio' ); ?></h2>
 						<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
@@ -317,26 +305,23 @@ class Mind_Map_Studio {
 							</div>
 						</div>
 					</div>
-
-					<!-- ── submit ── -->
 					<div class="mms-submit-row">
 						<?php submit_button( __( 'ذخیره تنظیمات', 'mind-map-studio' ), 'primary large', 'submit', false ); ?>
 					</div>
-
-				</div><!-- .mms-settings-wrap -->
+				</div>
 			</form>
 		</div>
 		<?php
 	}
 
-	/* ── Helper: read settings into array for JS localize ── */
+	/* ── Helper: read settings into array ── */
 	private static function get_frontend_settings() {
 		return array(
 			'watermark'   => array(
 				'text'            => get_option( 'mind_map_watermark_text',    '' ),
 				'size'            => (float) get_option( 'mind_map_watermark_size',    14 ),
 				'spacing_desktop' => (int)   get_option( 'mind_map_watermark_spacing', 220 ),
-				'spacing_mobile'  => (int)   round( get_option( 'mind_map_watermark_spacing', 220 ) / 2 ),
+				'spacing_mobile'  => (int)   round( (int)get_option( 'mind_map_watermark_spacing', 220 ) / 2 ),
 				'color'           => get_option( 'mind_map_watermark_color',   '#94a3b8' ),
 				'opacity'         => (float) get_option( 'mind_map_watermark_opacity', 0.18 ),
 			),
@@ -644,7 +629,6 @@ class Mind_Map_Studio {
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
 		if ( ! current_user_can( 'edit_post', $post_id ) ) return;
 
-		// Old Mind Map data + node styles
 		if ( isset( $_POST['mind_map_nonce'] ) && wp_verify_nonce( $_POST['mind_map_nonce'], 'mind_map_save' ) ) {
 			if ( isset( $_POST['mind_map_data'] ) ) {
 				update_post_meta( $post_id, '_mind_map_data', wp_unslash( $_POST['mind_map_data'] ) );
@@ -652,10 +636,8 @@ class Mind_Map_Studio {
 			if ( isset( $_POST['mind_map_layout'] ) ) {
 				update_post_meta( $post_id, '_mind_map_layout', sanitize_text_field( $_POST['mind_map_layout'] ) );
 			}
-			// Save node styles JSON
 			if ( isset( $_POST['mind_map_node_styles'] ) ) {
 				$raw_styles = wp_unslash( $_POST['mind_map_node_styles'] );
-				// Validate JSON
 				$decoded = json_decode( $raw_styles, true );
 				if ( is_array( $decoded ) ) {
 					update_post_meta( $post_id, '_mind_map_node_styles', $raw_styles );
@@ -690,7 +672,6 @@ class Mind_Map_Studio {
 			}
 		}
 
-		// Accordions & Mind Maps (with node_styles per map)
 		if ( isset( $_POST['mms_accordions_nonce'] ) && wp_verify_nonce( $_POST['mms_accordions_nonce'], 'mms_save_accordions' ) ) {
 			if ( isset( $_POST['mms_accordions'] ) ) {
 				$accordions = $_POST['mms_accordions'];
@@ -701,7 +682,6 @@ class Mind_Map_Studio {
 							$mindmap['title']  = sanitize_text_field( $mindmap['title'] );
 							$mindmap['data']   = wp_unslash( $mindmap['data'] );
 							$mindmap['layout'] = sanitize_text_field( $mindmap['layout'] );
-							// Save node styles
 							if ( isset( $mindmap['node_styles'] ) ) {
 								$ns_decoded = json_decode( wp_unslash( $mindmap['node_styles'] ), true );
 								$mindmap['node_styles'] = is_array( $ns_decoded ) ? wp_json_encode( $ns_decoded ) : '{}';
